@@ -1,0 +1,59 @@
+name: Unzip and Build
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['PersonalFinance.zip']
+
+permissions:
+  contents: write
+
+jobs:
+  unzip-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip into repo
+        run: |
+          unzip -q PersonalFinance.zip -d _tmp
+          rm -rf _tmp/PersonalFinance/.github
+          cp -a _tmp/PersonalFinance/. .
+          rm -rf _tmp PersonalFinance.zip
+          chmod +x gradlew
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Unzip project"
+          git push
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk PersonalFinance.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PersonalFinance-apk
+          path: PersonalFinance.apk
+          if-no-files-found: error
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: app/build/reports/**
+          if-no-files-found: ignore
