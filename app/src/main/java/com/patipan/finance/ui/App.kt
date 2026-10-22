@@ -22,6 +22,7 @@ import com.patipan.finance.FinanceVM
 import com.patipan.finance.data.*
 import java.time.*
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun FinanceApp(vm: FinanceVM) {
