@@ -22,14 +22,16 @@ import com.patipan.finance.FinanceVM
 import com.patipan.finance.data.*
 import java.time.*
 
-val Cream = Color(0xFFFFF7E0)
+val Cream = Color(0xFFFCF7E8)
 val Lime = Color(0xFFB9DB55)
 val Yellow = Color(0xFFFFE28A)
 val Pink = Color(0xFFFFC9D9)
 val Mint = Color(0xFFCDEBC5)
 val Orange = Color(0xFFFF8A4C)
-val Ink = Color(0xFF4A3F35)
-val IncomeGreen = Color(0xFF3E9B5A)
+val Ink = Color(0xFF3B342C)
+val Forest = Color(0xFF2F5D3A)
+val ForestLight = Color(0xFF4A7C55)
+val IncomeGreen = Color(0xFF2E8B50)
 val ExpenseRed = Color(0xFFE5603A)
 
 @Composable
@@ -38,7 +40,13 @@ fun FinanceTheme(content: @Composable () -> Unit) {
         colorScheme = lightColorScheme(
             primary = Orange, onPrimary = Color.White, secondary = Lime,
             background = Cream, surface = Color.White, onSurface = Ink, onBackground = Ink,
-            surfaceVariant = Yellow.copy(alpha = 0.35f)
+            surfaceVariant = Yellow.copy(alpha = 0.35f),
+            secondaryContainer = Color(0xFFE3F0B5), onSecondaryContainer = Ink,
+            surfaceContainerHigh = Color(0xFFFFFCF3)
+        ),
+        shapes = Shapes(
+            small = RoundedCornerShape(12.dp), medium = RoundedCornerShape(16.dp),
+            large = RoundedCornerShape(24.dp), extraLarge = RoundedCornerShape(28.dp)
         ),
         content = content
     )
@@ -47,7 +55,7 @@ fun FinanceTheme(content: @Composable () -> Unit) {
 /** พื้นหลังครีมมีลายตารางบาง ๆ */
 fun Modifier.gridBackground(): Modifier = this.background(Cream).drawBehind {
     val step = 26.dp.toPx()
-    val c = Color(0x18C9A55A)
+    val c = Color(0x0FC9A55A)
     var x = 0f
     while (x < size.width) { drawLine(c, Offset(x, 0f), Offset(x, size.height), 1f); x += step }
     var y = 0f

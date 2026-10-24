@@ -36,7 +36,8 @@ val palette = listOf(
 
 @Composable
 fun SoftCard(modifier: Modifier = Modifier, tint: Color = Color.White, content: @Composable ColumnScope.() -> Unit) {
-    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), color = tint, shadowElevation = 2.dp) {
+    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = tint, shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, Ink.copy(alpha = 0.06f))) {
         Column(Modifier.padding(16.dp), content = content)
     }
 }
@@ -44,16 +45,17 @@ fun SoftCard(modifier: Modifier = Modifier, tint: Color = Color.White, content: 
 @Composable
 fun SectionTitle(text: String, trailing: @Composable (() -> Unit)? = null) {
     Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        Text(text, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         trailing?.invoke()
     }
 }
 
 @Composable
 fun Stat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 13.sp, color = Ink.copy(alpha = 0.7f))
-        Text(value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = color)
+    Column(modifier.padding(horizontal = 3.dp).clip(RoundedCornerShape(16.dp)).background(color.copy(alpha = 0.10f))
+        .padding(vertical = 10.dp, horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 12.sp, color = Ink.copy(alpha = 0.7f))
+        Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
     }
 }
 
@@ -74,7 +76,7 @@ fun TxnRow(t: Txn, cats: Map<Long, Category>, wallets: Map<Long, Wallet>, showDa
     val sign = when (t.type) { INCOME -> "+"; EXPENSE -> "-"; else -> "" }
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clip(CircleShape).background(Yellow.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(44.dp).clip(CircleShape).background(when (t.type) { INCOME -> IncomeGreen.copy(alpha = 0.16f); EXPENSE -> Orange.copy(alpha = 0.20f); else -> Ink.copy(alpha = 0.08f) }), contentAlignment = Alignment.Center) {
             Text(emoji, fontSize = 22.sp)
         }
         Spacer(Modifier.width(12.dp))
@@ -98,12 +100,17 @@ fun DualBars(a: List<Long>, b: List<Long>, modifier: Modifier = Modifier.fillMax
         val mx = maxOf(a.maxOrNull() ?: 0L, b.maxOrNull() ?: 0L, 1L).toFloat()
         val gw = size.width / n
         val bw = gw * 0.38f
+        for (g in 1..3) {
+            val gy = size.height * g / 4f
+            drawLine(Ink.copy(alpha = 0.06f), Offset(0f, gy), Offset(size.width, gy), 1f)
+        }
+        val r = CornerRadius(minOf(bw / 2f, 4.dp.toPx()))
         for (i in 0 until n) {
             val x = i * gw + gw * 0.08f
             val h1 = a[i] / mx * size.height
             val h2 = b[i] / mx * size.height
-            if (h1 > 0f) drawRect(IncomeGreen, Offset(x, size.height - h1), Size(bw, h1))
-            if (h2 > 0f) drawRect(ExpenseRed, Offset(x + bw, size.height - h2), Size(bw, h2))
+            if (h1 > 0f) drawRoundRect(IncomeGreen, Offset(x, size.height - h1), Size(bw, h1), r)
+            if (h2 > 0f) drawRoundRect(ExpenseRed, Offset(x + bw, size.height - h2), Size(bw, h2), r)
         }
         drawLine(Ink.copy(alpha = 0.3f), Offset(0f, size.height), Offset(size.width, size.height), 2f)
     }
@@ -207,8 +214,8 @@ fun BudgetBar(name: String, used: Long, limit: Long, warnPercent: Int) {
             Text("${money(used)} / ${money(limit)} บาท", fontSize = 14.sp)
         }
         Spacer(Modifier.height(4.dp))
-        Box(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)).background(Cream)) {
-            Box(Modifier.fillMaxWidth((pct / 100.0).coerceIn(0.0, 1.0).toFloat()).fillMaxHeight().background(color))
+        Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Ink.copy(alpha = 0.08f))) {
+            Box(Modifier.fillMaxWidth((pct / 100.0).coerceIn(0.0, 1.0).toFloat()).fillMaxHeight().clip(RoundedCornerShape(5.dp)).background(color))
         }
         val remain = limit - used
         Text(

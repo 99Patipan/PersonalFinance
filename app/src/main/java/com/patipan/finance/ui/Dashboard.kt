@@ -42,21 +42,31 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         // 1) ยอดรวม + กระเป๋า
         item {
-            SoftCard {
-                Text("ยอดเงินคงเหลือรวม (จาก ${wallets.size} กระเป๋า)", fontSize = 14.sp, color = Ink.copy(alpha = 0.7f))
-                Text("${money(total)} บาท", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold,
-                    color = if (total < 0) ExpenseRed else Ink)
-                Spacer(Modifier.height(10.dp))
-                wallets.chunked(2).forEach { row ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { w ->
-                            Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
-                                .background(Color(w.color).copy(alpha = 0.3f)).padding(12.dp)) {
-                                Text("👛 ${w.name}", fontSize = 14.sp, maxLines = 1)
-                                Text(money(walletBalance(w, txns)), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = Forest, shadowElevation = 4.dp) {
+                Box(Modifier.background(Brush.linearGradient(listOf(Forest, ForestLight)))) {
+                    Column(Modifier.padding(20.dp)) {
+                        Text("ยอดเงินคงเหลือรวม", fontSize = 14.sp, color = Color.White.copy(alpha = 0.75f))
+                        Text("${money(total)} บาท", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold,
+                            color = if (total < 0) Color(0xFFFFB199) else Color.White)
+                        Text("จาก ${wallets.size} กระเป๋า", fontSize = 13.sp, color = Color.White.copy(alpha = 0.65f))
+                        Spacer(Modifier.height(14.dp))
+                        wallets.chunked(2).forEach { row ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                row.forEach { w ->
+                                    Row(Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
+                                        .background(Color.White.copy(alpha = 0.13f)).padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(10.dp).background(Color(w.color), CircleShape))
+                                        Spacer(Modifier.width(8.dp))
+                                        Column {
+                                            Text(w.name, fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f), maxLines = 1)
+                                            Text(money(walletBalance(w, txns)), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                    }
+                                }
+                                if (row.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }
-                        if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
@@ -172,7 +182,7 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                 val isSel = date == selected
                 Column(
                     Modifier.weight(1f).height(62.dp).padding(1.5.dp).clip(RoundedCornerShape(10.dp))
-                        .background(if (isSel) Yellow else Cream.copy(alpha = 0.7f))
+                        .background(if (isSel) Yellow else Cream.copy(alpha = 0.55f))
                         .then(if (date == today) Modifier.border(1.5.dp, Orange, RoundedCornerShape(10.dp)) else Modifier)
                         .clickable { onSelect(date) }.padding(2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally

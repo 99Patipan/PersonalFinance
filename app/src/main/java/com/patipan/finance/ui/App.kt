@@ -38,11 +38,15 @@ fun FinanceApp(vm: FinanceVM) {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().gridBackground()) {
-            Surface(color = Lime) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(color = Lime, shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp), shadowElevation = 3.dp) {
+                Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
+                        Text("🐥", fontSize = 24.sp)
+                    }
+                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("🐥 สมุดรายรับ-รายจ่าย", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("วันนี้ ${dateLabel(LocalDate.now())}", fontSize = 13.sp)
+                        Text("สมุดรายรับ-รายจ่าย", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                        Text("วันนี้ ${dateLabel(LocalDate.now())}", fontSize = 13.sp, color = Ink.copy(alpha = 0.7f))
                     }
                     Text("🐰", fontSize = 26.sp)
                 }
@@ -83,13 +87,15 @@ private fun FormHost(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
 
 @Composable
 private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onAdd: () -> Unit) {
-    Surface(color = Color.White, shadowElevation = 10.dp) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(color = Color.White, shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp), shadowElevation = 14.dp) {
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             NavItem("🏠", "หน้าหลัก", selected == 0) { onSelect(0) }
             NavItem("📒", "รายการ", selected == 1) { onSelect(1) }
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(58.dp).clip(CircleShape).background(Lime).clickable(onClick = onAdd), contentAlignment = Alignment.Center) {
-                    Text("+", fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Ink)
+                Box(Modifier.size(56.dp).shadow(6.dp, CircleShape).clip(CircleShape)
+                    .background(Brush.verticalGradient(listOf(Color(0xFFFFA06B), Orange)))
+                    .clickable(onClick = onAdd), contentAlignment = Alignment.Center) {
+                    Text("+", fontSize = 32.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
             }
             NavItem("📊", "รายงาน", selected == 2) { onSelect(2) }
@@ -102,9 +108,11 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onAdd: () -> Unit)
 private fun RowScope.NavItem(emoji: String, label: String, selected: Boolean, onClick: () -> Unit) {
     Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.clip(RoundedCornerShape(12.dp)).background(if (selected) Yellow else Color.Transparent).padding(horizontal = 14.dp, vertical = 2.dp)) {
+        Box(Modifier.clip(RoundedCornerShape(16.dp)).background(if (selected) Lime.copy(alpha = 0.45f) else Color.Transparent)
+            .padding(horizontal = 18.dp, vertical = 3.dp)) {
             Text(emoji, fontSize = 22.sp)
         }
-        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = if (selected) Ink else Ink.copy(alpha = 0.6f))
     }
 }
