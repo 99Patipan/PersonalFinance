@@ -43,6 +43,13 @@ class Repository(private val db: AppDatabase, private val ctx: Context) {
 
     suspend fun saveCategory(c: Category) { if (c.id == 0L) dao.insertCategory(c) else dao.updateCategory(c) }
 
+    /** พิมพ์ชื่อหมวดเอง: ถ้ามีชื่อซ้ำ (ประเภทเดียวกัน) ใช้อันเดิม ไม่เช่นนั้นสร้างใหม่ */
+    suspend fun findOrCreateCategory(name: String, type: String, emoji: String): Long {
+        val n = name.trim()
+        val hit = dao.categoriesOnce().firstOrNull { it.type == type && it.name.equals(n, ignoreCase = true) }
+        return hit?.id ?: dao.insertCategory(Category(0L, n, type, emoji))
+    }
+
     suspend fun deleteCategory(c: Category) = db.withTransaction {
         dao.clearCategoryOnTxns(c.id)
         dao.deleteBudget(c.id)

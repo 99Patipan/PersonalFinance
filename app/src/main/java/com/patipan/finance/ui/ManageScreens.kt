@@ -147,7 +147,9 @@ private fun CategoryDialog(c: Category?, type: String, onSave: (Category) -> Uni
     AlertDialog(onDismissRequest = onDismiss, title = { Text(if (c == null) "เพิ่มหมวดหมู่" else "แก้ไขหมวดหมู่") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("ชื่อหมวดหมู่") }, singleLine = true)
+                OutlinedTextField(name, { name = it }, label = { Text("ชื่อหมวดหมู่ (พิมพ์แก้ได้)") }, singleLine = true)
+                OutlinedTextField(emoji, { v -> emoji = firstSymbol(v).ifEmpty { "🏷️" } },
+                    label = { Text("ไอคอน (เลือกด้านล่าง หรือพิมพ์อีโมจิเอง)") }, singleLine = true)
                 emojiChoices.chunked(6).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         row.forEach { e ->
@@ -218,4 +220,13 @@ fun BudgetsScreen(vm: FinanceVM, onBack: () -> Unit) {
             }
         }
     }
+}
+
+/** ตัดเอาตัวอักษร/อีโมจิตัวแรกเพียงตัวเดียว */
+private fun firstSymbol(v: String): String {
+    val t = v.trim()
+    if (t.isEmpty()) return ""
+    val it = java.text.BreakIterator.getCharacterInstance()
+    it.setText(t)
+    return t.substring(0, it.next())
 }

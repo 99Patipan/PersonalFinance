@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- กองเหรียญด้านล่าง -->
+    <path android:fillColor="#FFD9942B" android:pathData="M30,78h48a4,4 0 0 1 4,4v0a4,4 0 0 1 -4,4h-48a4,4 0 0 1 -4,-4v0a4,4 0 0 1 4,-4z" />
+    <path android:fillColor="#FFF2B33D" android:pathData="M30,75h48a4,4 0 0 1 4,4v0a4,4 0 0 1 -4,4h-48a4,4 0 0 1 -4,-4v0a4,4 0 0 1 4,-4z" />
+    <!-- เหรียญใหญ่ -->
+    <path android:fillColor="#FFD9942B" android:pathData="M54,57m-25,0a25,25 0,1 1,50 0a25,25 0,1 1,-50 0" />
+    <path android:fillColor="#FFFFD54F" android:pathData="M54,54m-25,0a25,25 0,1 1,50 0a25,25 0,1 1,-50 0" />
+    <path android:fillColor="#FFFFE58A" android:pathData="M54,54m-19,0a19,19 0,1 1,38 0a19,19 0,1 1,-38 0" />
+    <!-- ประกายบนเหรียญ -->
+    <path android:fillColor="#66FFFFFF" android:pathData="M38,44a18,18 0 0 1 12,-9a22,22 0 0 0 -12,9z" />
+    <!-- สัญลักษณ์ ฿ -->
+    <path android:strokeColor="#FF4F6F57" android:strokeWidth="4" android:strokeLineCap="round"
+        android:strokeLineJoin="round" android:fillColor="#00000000"
+        android:pathData="M47,41V67M47,41H55a6,6 0 0 1 0,12H47M47,53H57a7,7 0 0 1 0,14H47M51,37V41M51,67V71" />
+</vector>

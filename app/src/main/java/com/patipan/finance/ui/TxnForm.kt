@@ -49,6 +49,7 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
     var type by remember { mutableStateOf(init?.type ?: target.type) }
     var amount by remember { mutableStateOf(init?.let { plain(it.amountCents) } ?: "") }
     var catId by remember { mutableStateOf(init?.categoryId) }
+    var customCat by remember { mutableStateOf("") }
     var walletId by remember { mutableStateOf(init?.walletId ?: wallets.firstOrNull()?.id) }
     var toId by remember { mutableStateOf(init?.toWalletId) }
     var dt by remember { mutableStateOf(init?.ldt ?: LocalDateTime.now().withSecond(0).withNano(0)) }
@@ -70,20 +71,29 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
     fun save() {
         if (saving) return
         val cents = parseCents(amount)
+        val typed = customCat.trim()
         when {
             cents == null || cents <= 0L -> { error = "กรุณากรอกจำนวนเงินที่มากกว่า 0"; return }
             walletId == null -> { error = "กรุณาเลือกกระเป๋าเงิน"; return }
-            type != TRANSFER && catId == null -> { error = "กรุณาเลือกหมวดหมู่"; return }
+            type != TRANSFER && catId == null && typed.isEmpty() -> { error = "กรุณาเลือกหรือพิมพ์หมวดหมู่"; return }
             type == TRANSFER && (toId == null || toId == walletId) -> { error = "กรุณาเลือกกระเป๋าปลายทางที่ต่างจากต้นทาง"; return }
         }
         saving = true
-        vm.saveTxn(Txn(
-            id = init?.id ?: 0L, type = type, amountCents = cents!!,
-            categoryId = if (type == TRANSFER) null else catId,
-            walletId = walletId!!, toWalletId = if (type == TRANSFER) toId else null,
-            timestamp = dt.toMillis(), detail = detail.trim(), note = note.trim(), receiptPath = receipt
-        ))
-        onClose()
+        scope.launch {
+            // ถ้าพิมพ์หมวดเอง ให้ใช้ชื่อที่พิมพ์ (สร้างหมวดใหม่อัตโนมัติถ้ายังไม่มี)
+            val finalCat: Long? = when {
+                type == TRANSFER -> null
+                typed.isNotEmpty() -> vm.repo.findOrCreateCategory(typed, type, if (type == INCOME) "💰" else "🏷️")
+                else -> catId
+            }
+            vm.saveTxn(Txn(
+                id = init?.id ?: 0L, type = type, amountCents = cents!!,
+                categoryId = finalCat,
+                walletId = walletId!!, toWalletId = if (type == TRANSFER) toId else null,
+                timestamp = dt.toMillis(), detail = detail.trim(), note = note.trim(), receiptPath = receipt
+            ))
+            onClose()
+        }
     }
 
     Surface(Modifier.fillMaxSize(), color = Cream) {
@@ -95,9 +105,9 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 TextButton(onClick = onClose) { Text("✕ ปิด", fontSize = 16.sp) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TypeChip("รายจ่าย", ExpenseRed, type == EXPENSE, Modifier.weight(1f)) { type = EXPENSE; catId = null }
-                TypeChip("รายรับ", IncomeGreen, type == INCOME, Modifier.weight(1f)) { type = INCOME; catId = null }
-                TypeChip("โอนเงิน", Color(0xFF6CB6E8), type == TRANSFER, Modifier.weight(1f)) { type = TRANSFER; catId = null }
+                TypeChip("รายจ่าย", ExpenseRed, type == EXPENSE, Modifier.weight(1f)) { type = EXPENSE; catId = null; customCat = "" }
+                TypeChip("รายรับ", IncomeGreen, type == INCOME, Modifier.weight(1f)) { type = INCOME; catId = null; customCat = "" }
+                TypeChip("โอนเงิน", Color(0xFF6CB6E8), type == TRANSFER, Modifier.weight(1f)) { type = TRANSFER; catId = null; customCat = "" }
             }
             SoftCard {
                 OutlinedTextField(value = amount, onValueChange = { amount = filterAmount(it); error = null },
@@ -108,7 +118,13 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 Spacer(Modifier.height(10.dp))
                 if (type != TRANSFER) {
                     Picker("หมวดหมู่", catName(typeCats.firstOrNull { it.id == catId }).takeIf { catId != null } ?: "เลือกหมวดหมู่",
-                        typeCats.map { "${it.emoji} ${it.name}" }) { catId = typeCats[it].id; error = null }
+                        typeCats.map { "${it.emoji} ${it.name}" }) { catId = typeCats[it].id; customCat = ""; error = null }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(customCat, { customCat = it; if (it.isNotBlank()) catId = null; error = null },
+                        label = { Text(if (type == INCOME) "หรือพิมพ์ชื่อหมวดรายรับเอง" else "หรือพิมพ์ว่าจ่ายค่าอะไร (หมวดใหม่)") },
+                        placeholder = { Text("เช่น ค่าเทอม, ค่าขนมลูก, ทำบุญ") },
+                        supportingText = { Text("พิมพ์แล้วบันทึก ระบบจะเพิ่มเป็นหมวดหมู่ให้อัตโนมัติ") },
+                        singleLine = true, modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(10.dp))
                 }
                 Picker(if (type == TRANSFER) "จากกระเป๋า" else "กระเป๋าเงิน",

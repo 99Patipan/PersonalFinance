@@ -30,30 +30,32 @@ import android.content.Context
 import android.graphics.BitmapFactory
 
 val palette = listOf(
-    Color(0xFFFF8A4C), Color(0xFFFFC857), Color(0xFF7BC47F), Color(0xFFF58FB0), Color(0xFF6CB6E8),
-    Color(0xFFB59AE8), Color(0xFF4FC3B0), Color(0xFFE8A06C), Color(0xFFA3C95A), Color(0xFFD97B7B)
+    Color(0xFF8DAA93), Color(0xFFF59A62), Color(0xFFB7CBBB), Color(0xFFF9C3A1), Color(0xFF6F9479),
+    Color(0xFFD9C7A3), Color(0xFF9FB8C4), Color(0xFFC9A7B8), Color(0xFFB5B58A), Color(0xFF8C9A8F)
 )
 
 @Composable
 fun SoftCard(modifier: Modifier = Modifier, tint: Color = Color.White, content: @Composable ColumnScope.() -> Unit) {
-    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), color = tint, shadowElevation = 2.dp) {
-        Column(Modifier.padding(16.dp), content = content)
+    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = tint, shadowElevation = 2.dp) {
+        Column(Modifier.padding(18.dp), content = content)
     }
 }
 
 @Composable
 fun SectionTitle(text: String, trailing: @Composable (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+    Row(Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Ink, modifier = Modifier.weight(1f))
         trailing?.invoke()
     }
 }
 
 @Composable
 fun Stat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 13.sp, color = Ink.copy(alpha = 0.7f))
-        Text(value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = color)
+    Column(modifier.padding(horizontal = 3.dp).clip(RoundedCornerShape(20.dp)).background(color.copy(alpha = 0.14f))
+        .padding(vertical = 12.dp, horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 12.sp, color = Ink.copy(alpha = 0.65f))
+        Spacer(Modifier.height(2.dp))
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
     }
 }
 
@@ -70,22 +72,26 @@ fun TxnRow(t: Txn, cats: Map<Long, Category>, wallets: Map<Long, Wallet>, showDa
     val title = t.detail.ifBlank { if (t.type == TRANSFER) "โอนเงิน" else cat?.name ?: "ไม่ระบุหมวด" }
     val sub = if (t.type == TRANSFER) "${wallets[t.walletId]?.name ?: "-"} → ${wallets[t.toWalletId]?.name ?: "-"}"
     else "${cat?.name ?: "ไม่ระบุหมวด"} • ${wallets[t.walletId]?.name ?: "-"}"
-    val color = when (t.type) { INCOME -> IncomeGreen; EXPENSE -> ExpenseRed; else -> Ink.copy(alpha = 0.7f) }
+    val pill = when (t.type) { INCOME -> IncomeGreen; EXPENSE -> Orange; else -> Color(0xFF9AA09B) }
+    val circle = when (t.type) { INCOME -> Mint; EXPENSE -> Yellow; else -> Sand }
     val sign = when (t.type) { INCOME -> "+"; EXPENSE -> "-"; else -> "" }
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clip(CircleShape).background(Yellow.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(46.dp).clip(CircleShape).background(circle), contentAlignment = Alignment.Center) {
             Text(emoji, fontSize = 22.sp)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
-            Text(sub, fontSize = 12.sp, color = Ink.copy(alpha = 0.6f), maxLines = 1)
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1)
+            Text(sub, fontSize = 12.sp, color = Ink.copy(alpha = 0.55f), maxLines = 1)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("$sign${money(t.amountCents)} บาท", color = color, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Box(Modifier.clip(RoundedCornerShape(12.dp)).background(pill).padding(horizontal = 10.dp, vertical = 5.dp)) {
+                Text("$sign${money(t.amountCents)} บาท", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
+            }
+            Spacer(Modifier.height(2.dp))
             Text(if (showDate) "${dateLabel(t.localDate)} ${timeLabel(t.ldt)}" else timeLabel(t.ldt),
-                fontSize = 11.sp, color = Ink.copy(alpha = 0.55f))
+                fontSize = 11.sp, color = Ink.copy(alpha = 0.5f))
         }
     }
 }
@@ -98,22 +104,25 @@ fun DualBars(a: List<Long>, b: List<Long>, modifier: Modifier = Modifier.fillMax
         val mx = maxOf(a.maxOrNull() ?: 0L, b.maxOrNull() ?: 0L, 1L).toFloat()
         val gw = size.width / n
         val bw = gw * 0.38f
+        val r = CornerRadius(minOf(bw / 2f, 4.dp.toPx()))
         for (i in 0 until n) {
             val x = i * gw + gw * 0.08f
             val h1 = a[i] / mx * size.height
             val h2 = b[i] / mx * size.height
-            if (h1 > 0f) drawRect(IncomeGreen, Offset(x, size.height - h1), Size(bw, h1))
-            if (h2 > 0f) drawRect(ExpenseRed, Offset(x + bw, size.height - h2), Size(bw, h2))
+            if (h1 > 0f) drawRoundRect(IncomeGreen, Offset(x, size.height - h1), Size(bw, h1), r)
+            if (h2 > 0f) drawRoundRect(Orange, Offset(x + bw, size.height - h2), Size(bw, h2), r)
         }
-        drawLine(Ink.copy(alpha = 0.3f), Offset(0f, size.height), Offset(size.width, size.height), 2f)
+        // แกนซ้าย + เส้นฐาน
+        drawLine(Ink.copy(alpha = 0.12f), Offset(0f, 0f), Offset(0f, size.height), 2f)
+        drawLine(Ink.copy(alpha = 0.12f), Offset(0f, size.height), Offset(size.width, size.height), 2f)
     }
 }
 
 @Composable
 fun ChartLegend() {
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.Center) {
-        Box(Modifier.size(10.dp).background(IncomeGreen, CircleShape)); Text(" รายรับ   ", fontSize = 12.sp)
-        Box(Modifier.size(10.dp).background(ExpenseRed, CircleShape)); Text(" รายจ่าย", fontSize = 12.sp)
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(10.dp).background(IncomeGreen, RoundedCornerShape(3.dp))); Text(" รายรับ     ", fontSize = 12.sp, color = Ink.copy(alpha = 0.7f))
+        Box(Modifier.size(10.dp).background(Orange, RoundedCornerShape(3.dp))); Text(" รายจ่าย", fontSize = 12.sp, color = Ink.copy(alpha = 0.7f))
     }
 }
 
@@ -121,9 +130,9 @@ fun ChartLegend() {
 fun CategoryShare(items: List<Pair<String, Long>>) {
     val total = items.sumOf { it.second }
     if (total <= 0) { EmptyHint("ยังไม่มีรายจ่ายในช่วงนี้"); return }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        Canvas(Modifier.size(150.dp)) {
-            val sw = 30.dp.toPx()
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(170.dp)) {
+            val sw = 34.dp.toPx()
             var start = -90f
             items.forEachIndexed { i, p ->
                 val sweep = p.second.toFloat() / total * 360f
@@ -133,16 +142,20 @@ fun CategoryShare(items: List<Pair<String, Long>>) {
                 start += sweep
             }
         }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("รวม", fontSize = 12.sp, color = Ink.copy(alpha = 0.55f))
+            Text(money(total), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink, maxLines = 1)
+        }
     }
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(12.dp))
     items.take(8).forEachIndexed { i, p ->
-        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(12.dp).background(palette[i % palette.size], CircleShape))
-            Spacer(Modifier.width(8.dp))
-            Text(p.first, Modifier.weight(1f), fontSize = 15.sp, maxLines = 1)
-            Text(String.format(Locale.US, "%.0f%%", p.second * 100.0 / total), fontSize = 13.sp, color = Ink.copy(alpha = 0.6f))
+        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(16.dp).background(palette[i % palette.size], RoundedCornerShape(5.dp)))
             Spacer(Modifier.width(10.dp))
-            Text("${money(p.second)} บาท", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(p.first, Modifier.weight(1f), fontSize = 15.sp, maxLines = 1)
+            Text(String.format(Locale.US, "%.0f%%", p.second * 100.0 / total), fontSize = 13.sp, color = Ink.copy(alpha = 0.55f))
+            Spacer(Modifier.width(10.dp))
+            Text("${money(p.second)} บาท", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
         }
     }
 }
@@ -196,28 +209,39 @@ fun rememberReceipt(path: String?): ImageBitmap? = remember(path) {
 }
 
 @Composable
-fun BudgetBar(name: String, used: Long, limit: Long, warnPercent: Int) {
+fun BudgetBar(name: String, used: Long, limit: Long, warnPercent: Int, emoji: String? = null) {
     val pct = if (limit > 0) used * 100.0 / limit else 0.0
     val over = used > limit
     val near = !over && pct >= warnPercent
-    val color = when { over -> ExpenseRed; near -> Orange; else -> IncomeGreen }
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(name, Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text("${money(used)} / ${money(limit)} บาท", fontSize = 14.sp)
+    val barColor = when { over -> ExpenseRed; near -> Orange; else -> Sage }
+    val textColor = when { over -> ExpenseRed; near -> Orange; else -> Ink.copy(alpha = 0.6f) }
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (emoji != null) {
+            Box(Modifier.size(46.dp).clip(CircleShape).background(Mint), contentAlignment = Alignment.Center) {
+                Text(emoji, fontSize = 22.sp)
+            }
+            Spacer(Modifier.width(12.dp))
         }
-        Spacer(Modifier.height(4.dp))
-        Box(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)).background(Cream)) {
-            Box(Modifier.fillMaxWidth((pct / 100.0).coerceIn(0.0, 1.0).toFloat()).fillMaxHeight().background(color))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(name, Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1)
+                Text("${money(used)} / ${money(limit)} บาท", fontSize = 13.sp, color = Ink.copy(alpha = 0.6f))
+            }
+            Spacer(Modifier.height(6.dp))
+            Box(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp)).background(Sand)) {
+                Box(Modifier.fillMaxWidth((pct / 100.0).coerceIn(0.0, 1.0).toFloat()).fillMaxHeight()
+                    .clip(RoundedCornerShape(7.dp)).background(barColor))
+            }
+            val remain = limit - used
+            Spacer(Modifier.height(3.dp))
+            Text(
+                when {
+                    over -> "⚠️ เกินงบ ${money(-remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
+                    near -> "⚠️ ใกล้เกินงบ เหลือ ${money(remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
+                    else -> "เหลือ ${money(remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
+                }, fontSize = 12.sp, color = textColor
+            )
         }
-        val remain = limit - used
-        Text(
-            when {
-                over -> "⚠️ เกินงบ ${money(-remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
-                near -> "⚠️ ใกล้เกินงบ เหลือ ${money(remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
-                else -> "เหลือ ${money(remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
-            }, fontSize = 13.sp, color = color
-        )
     }
 }
 

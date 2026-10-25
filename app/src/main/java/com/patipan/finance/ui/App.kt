@@ -23,6 +23,8 @@ import com.patipan.finance.data.*
 import java.time.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 fun FinanceApp(vm: FinanceVM) {
@@ -38,15 +40,6 @@ fun FinanceApp(vm: FinanceVM) {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().gridBackground()) {
-            Surface(color = Lime) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("🐥 สมุดรายรับ-รายจ่าย", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("วันนี้ ${dateLabel(LocalDate.now())}", fontSize = 13.sp)
-                    }
-                    Text("🐰", fontSize = 26.sp)
-                }
-            }
             Box(Modifier.weight(1f)) {
                 when (sub) {
                     "wallets" -> WalletsScreen(vm, { sub = null }) { form = FormTarget(null, TRANSFER) }
@@ -83,28 +76,27 @@ private fun FormHost(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
 
 @Composable
 private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onAdd: () -> Unit) {
-    Surface(color = Color.White, shadowElevation = 10.dp) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            NavItem("🏠", "หน้าหลัก", selected == 0) { onSelect(0) }
-            NavItem("📒", "รายการ", selected == 1) { onSelect(1) }
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(58.dp).clip(CircleShape).background(Lime).clickable(onClick = onAdd), contentAlignment = Alignment.Center) {
-                    Text("+", fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Ink)
-                }
+    Surface(color = Color.White, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), shadowElevation = 10.dp) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            NavItem(Glyph.Home, "หน้าหลัก", selected == 0) { onSelect(0) }
+            NavItem(Glyph.List, "รายการ", selected == 1) { onSelect(1) }
+            Box(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onAdd)
+                .semantics { contentDescription = "เพิ่มรายการ" }, contentAlignment = Alignment.Center) {
+                LineIcon(Glyph.Plus, Orange, Modifier.size(32.dp))
             }
-            NavItem("📊", "รายงาน", selected == 2) { onSelect(2) }
-            NavItem("⚙️", "ตั้งค่า", selected == 3) { onSelect(3) }
+            NavItem(Glyph.Chart, "รายงาน", selected == 2) { onSelect(2) }
+            NavItem(Glyph.Gear, "ตั้งค่า", selected == 3) { onSelect(3) }
         }
     }
 }
 
 @Composable
-private fun RowScope.NavItem(emoji: String, label: String, selected: Boolean, onClick: () -> Unit) {
-    Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.clip(RoundedCornerShape(12.dp)).background(if (selected) Yellow else Color.Transparent).padding(horizontal = 14.dp, vertical = 2.dp)) {
-            Text(emoji, fontSize = 22.sp)
+private fun RowScope.NavItem(glyph: Glyph, label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick)
+        .semantics { contentDescription = label }, contentAlignment = Alignment.Center) {
+        Box(Modifier.size(width = 52.dp, height = 36.dp).clip(RoundedCornerShape(18.dp))
+            .background(if (selected) Mint else Color.Transparent), contentAlignment = Alignment.Center) {
+            LineIcon(glyph, if (selected) SageDeep else Ink.copy(alpha = 0.4f), Modifier.size(26.dp))
         }
-        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
     }
 }
