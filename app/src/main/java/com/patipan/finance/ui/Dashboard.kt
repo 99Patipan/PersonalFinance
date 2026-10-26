@@ -96,20 +96,21 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
                 CalendarGrid(ym, monthTx, sel) { d -> vm.selectedDay.value = if (sel == d) null else d }
             }
         }
-        if (sel != null) item {
-            val day = txns.filter { it.localDate == sel }
-            SoftCard(tint = Yellow.copy(alpha = 0.6f)) {
-                Text("รายการวันที่ ${dateLabel(sel!!)}", fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
-                if (day.isEmpty()) EmptyHint("ไม่มีรายการในวันนี้")
-                day.forEach { TxnRow(it, catMap, wMap, showDate = false) { onOpen(it) } }
-            }
-        }
-        // 3) ธุรกรรมล่าสุด
+        // 3) ธุรกรรมล่าสุด / รายการของวันที่เลือก (การ์ดเดียว หน้าตาเหมือนเดิมเสมอ)
         item {
+            val day = sel?.let { s -> txns.filter { it.localDate == s } }
             SoftCard {
-                SectionTitle("ธุรกรรมล่าสุด") { TextButton(onClick = onSeeAll) { Text("ดูทั้งหมด") } }
-                if (txns.isEmpty()) EmptyHint("ยังไม่มีรายการ กดปุ่ม + เพื่อเพิ่มรายการแรก")
-                txns.take(5).forEach { TxnRow(it, catMap, wMap) { onOpen(it) } }
+                if (sel == null) {
+                    SectionTitle("ธุรกรรมล่าสุด") { TextButton(onClick = onSeeAll) { Text("ดูทั้งหมด") } }
+                    if (txns.isEmpty()) EmptyHint("ยังไม่มีรายการ กดปุ่ม + เพื่อเพิ่มรายการแรก")
+                    txns.take(5).forEach { TxnRow(it, catMap, wMap) { onOpen(it) } }
+                } else {
+                    SectionTitle("รายการวันที่ ${dateLabel(sel!!)}") {
+                        TextButton(onClick = { vm.selectedDay.value = null }) { Text("ล่าสุด") }
+                    }
+                    if (day.isNullOrEmpty()) EmptyHint("ไม่มีรายการในวันนี้")
+                    day?.forEach { TxnRow(it, catMap, wMap, showDate = false) { onOpen(it) } }
+                }
             }
         }
         // 4) กราฟรายวัน
