@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.*
 import com.patipan.finance.FinanceVM
 import com.patipan.finance.data.*
 import java.time.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 private val walletColors = listOf(
     0xFFFFC857L, 0xFFF58FB0L, 0xFF7BC47FL, 0xFF6CB6E8L, 0xFFFF8A4CL, 0xFFB59AE8L,
@@ -42,17 +44,19 @@ private val emojiGroups = listOf(
 @Composable
 private fun PageHeader(title: String, onBack: () -> Unit, action: (@Composable () -> Unit)? = null) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(40.dp).shadow(2.dp, CircleShape).clip(CircleShape).background(Color.White).clickable(onClick = onBack),
-            contentAlignment = Alignment.Center) { Text("‹", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Ink) }
+        Box(Modifier.size(42.dp).clip(CircleShape).background(Color.White).border(1.dp, Ink.copy(alpha = 0.08f), CircleShape)
+            .pressClickable(onBack).semantics { contentDescription = "ย้อนกลับ" }, contentAlignment = Alignment.Center) {
+            LineIcon(Glyph.ChevronLeft, Ink, Modifier.size(22.dp))
+        }
         Spacer(Modifier.width(12.dp))
-        Text(title, Modifier.weight(1f), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(title, Modifier.weight(1f), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
         action?.invoke()
     }
 }
 
 @Composable
 private fun AddPill(onClick: () -> Unit) {
-    Row(Modifier.clip(RoundedCornerShape(50)).background(SageDeep).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 9.dp),
+    Row(Modifier.clip(RoundedCornerShape(50)).background(Moss).pressClickable(onClick).padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically) {
         LineIcon(Glyph.Plus, Color.White, Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
@@ -62,7 +66,7 @@ private fun AddPill(onClick: () -> Unit) {
 
 @Composable
 private fun RoundAction(bg: Color, onClick: () -> Unit, content: @Composable () -> Unit) {
-    Box(Modifier.size(38.dp).clip(CircleShape).background(bg).clickable(onClick = onClick), contentAlignment = Alignment.Center) { content() }
+    Box(Modifier.size(40.dp).clip(CircleShape).background(bg).pressClickable(onClick), contentAlignment = Alignment.Center) { content() }
 }
 
 /** เดาไอคอนของกระเป๋าจากชื่อ (ไม่ต้องแก้ฐานข้อมูล) */
@@ -101,33 +105,35 @@ fun WalletsScreen(vm: FinanceVM, onBack: () -> Unit, onTransfer: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 val total = wallets.sumOf { walletBalance(it, txns) }
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = Color.Transparent, shadowElevation = 3.dp) {
+                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = Forest) {
                     Box(Modifier.background(Brush.linearGradient(listOf(Forest, ForestLight))).padding(22.dp)) {
                         Column(Modifier.align(Alignment.CenterStart)) {
                             Text("ยอดรวมทุกกระเป๋า", color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
                             Spacer(Modifier.height(4.dp))
-                            Text("${money(total)} บาท", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
+                            Text("${money(total)} บาท", style = Num, color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
                             Spacer(Modifier.height(6.dp))
                             Box(Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.22f)).padding(horizontal = 10.dp, vertical = 3.dp)) {
                                 Text("${wallets.size} กระเป๋า", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             }
                         }
-                        Text("👛", fontSize = 58.sp, modifier = Modifier.align(Alignment.CenterEnd))
+                        LineIcon(Glyph.Wallet, Color.White.copy(alpha = 0.3f), Modifier.size(76.dp).align(Alignment.CenterEnd))
                     }
                 }
             }
             item {
                 Button(onClick = onTransfer, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Orange, contentColor = Color.White)) {
-                    Text("🔁  โอนเงินระหว่างกระเป๋า", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    colors = ButtonDefaults.buttonColors(containerColor = Action, contentColor = Color.White)) {
+                    LineIcon(Glyph.Transfer, Color.White, Modifier.size(22.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text("โอนเงินระหว่างกระเป๋า", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
-                Text("การโอนไม่ถูกนับเป็นรายรับหรือรายจ่ายรวม", fontSize = 12.sp, color = Ink.copy(alpha = 0.6f),
+                Text("การโอนไม่ถูกนับเป็นรายรับหรือรายจ่ายรวม", fontSize = 12.sp, color = InkSoft,
                     modifier = Modifier.padding(start = 6.dp, top = 6.dp))
             }
             items(wallets, key = { it.id }) { w ->
                 val c = Color(w.color)
                 val bal = walletBalance(w, txns)
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(26.dp), color = Color.White, shadowElevation = 2.dp) {
+                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = Color.White, border = BorderStroke(1.dp, Ink.copy(alpha = 0.07f))) {
                     Row(Modifier.height(IntrinsicSize.Min)) {
                         Box(Modifier.width(9.dp).fillMaxHeight().background(c))
                         Row(Modifier.weight(1f).padding(start = 14.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
@@ -137,14 +143,14 @@ fun WalletsScreen(vm: FinanceVM, onBack: () -> Unit, onTransfer: () -> Unit) {
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(w.name, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1)
-                                Text("เริ่มต้น ${money(w.initialCents)} บาท", fontSize = 12.sp, color = Ink.copy(alpha = 0.55f))
+                                Text("เริ่มต้น ${money(w.initialCents)} บาท", fontSize = 12.sp, color = InkSoft)
                                 Spacer(Modifier.height(2.dp))
-                                Text("${money(bal)} บาท", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp,
-                                    color = if (bal < 0) ExpenseRed else SageDeep)
+                                Text("${money(bal)} บาท", style = Num, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp,
+                                    color = if (bal < 0) ExpenseText else Moss)
                             }
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                RoundAction(Sand, { edit = w }) { LineIcon(Glyph.Pencil, Ink, Modifier.size(18.dp)) }
-                                RoundAction(Pink, { del = w }) { Text("🗑️", fontSize = 16.sp) }
+                                RoundAction(Sand, { edit = w }) { LineIcon(Glyph.Pencil, Ink, Modifier.size(20.dp)) }
+                                RoundAction(Pink, { del = w }) { LineIcon(Glyph.Trash, ExpenseText, Modifier.size(20.dp)) }
                             }
                         }
                     }
@@ -168,7 +174,7 @@ private fun WalletDialog(w: Wallet?, onSave: (Wallet) -> Unit, onDismiss: () -> 
                     Text(walletEmoji(name), fontSize = 32.sp)
                 }
                 OutlinedTextField(name, { name = it }, label = { Text("ชื่อกระเป๋า") }, singleLine = true, shape = RoundedCornerShape(16.dp))
-                Text("สีประจำกระเป๋า", fontSize = 13.sp, color = Ink.copy(alpha = 0.6f))
+                Text("สีประจำกระเป๋า", fontSize = 13.sp, color = InkSoft)
                 walletColors.chunked(6).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { c ->
@@ -207,8 +213,8 @@ fun CategoriesScreen(vm: FinanceVM, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         PageHeader("หมวดหมู่", onBack) { AddPill { adding = true } }
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = type == EXPENSE, onClick = { type = EXPENSE }, label = { Text("รายจ่าย") })
-            FilterChip(selected = type == INCOME, onClick = { type = INCOME }, label = { Text("รายรับ") })
+            Pill("รายจ่าย", type == EXPENSE) { type = EXPENSE }
+            Pill("รายรับ", type == INCOME) { type = INCOME }
         }
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(cats.filter { it.type == type }, key = { it.id }) { c ->
@@ -219,9 +225,9 @@ fun CategoriesScreen(vm: FinanceVM, onBack: () -> Unit) {
                         }
                         Spacer(Modifier.width(12.dp))
                         Text(c.name, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.Medium)
-                        RoundAction(Sand, { edit = c }) { LineIcon(Glyph.Pencil, Ink, Modifier.size(18.dp)) }
+                        RoundAction(Sand, { edit = c }) { LineIcon(Glyph.Pencil, Ink, Modifier.size(20.dp)) }
                         Spacer(Modifier.width(8.dp))
-                        RoundAction(Pink, { del = c }) { Text("🗑️", fontSize = 16.sp) }
+                        RoundAction(Pink, { del = c }) { LineIcon(Glyph.Trash, ExpenseText, Modifier.size(20.dp)) }
                     }
                 }
             }
@@ -238,20 +244,20 @@ private fun CategoryDialog(c: Category?, type: String, onSave: (Category) -> Uni
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(56.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) { Text(emoji, fontSize = 28.sp) }
+                    Box(Modifier.size(56.dp).clip(CircleShape).background(Mint), contentAlignment = Alignment.Center) { Text(emoji, fontSize = 28.sp) }
                     Spacer(Modifier.width(12.dp))
                     OutlinedTextField(name, { name = it }, label = { Text("ชื่อหมวดหมู่") }, singleLine = true, shape = RoundedCornerShape(16.dp))
                 }
                 OutlinedTextField(emoji, { v -> emoji = firstSymbol(v).ifEmpty { "🏷️" } },
                     label = { Text("พิมพ์อีโมจิเองก็ได้") }, singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
                 emojiGroups.forEach { (title, list) ->
-                    Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ink.copy(alpha = 0.65f), modifier = Modifier.padding(top = 6.dp))
+                    Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = InkSoft, modifier = Modifier.padding(top = 6.dp))
                     list.chunked(6).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             row.forEach { e ->
                                 Box(Modifier.size(40.dp).clip(CircleShape)
-                                    .background(if (e == emoji) Yellow else Cream)
-                                    .border(if (e == emoji) 2.dp else 0.dp, Orange, CircleShape).clickable { emoji = e },
+                                    .background(if (e == emoji) Mint else Cream)
+                                    .border(if (e == emoji) 2.dp else 0.dp, Moss, CircleShape).clickable { emoji = e },
                                     contentAlignment = Alignment.Center) { Text(e, fontSize = 20.sp) }
                             }
                         }
@@ -293,7 +299,7 @@ fun BudgetsScreen(vm: FinanceVM, onBack: () -> Unit) {
             },
             dismissButton = {
                 Row {
-                    if (bMap[c.id] != null) TextButton(onClick = { vm.setBudget(c.id, 0); edit = null }) { Text("ลบงบ", color = ExpenseRed) }
+                    if (bMap[c.id] != null) TextButton(onClick = { vm.setBudget(c.id, 0); edit = null }) { Text("ลบงบ", color = ExpenseText) }
                     TextButton(onClick = { edit = null }) { Text("ยกเลิก") }
                 }
             })
@@ -301,14 +307,14 @@ fun BudgetsScreen(vm: FinanceVM, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         PageHeader("งบประมาณรายเดือน", onBack)
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            item { Text("แตะที่หมวดหมู่เพื่อตั้งหรือแก้ไขงบ (นับจากรายจ่ายของเดือนปัจจุบัน)", fontSize = 13.sp, color = Ink.copy(alpha = 0.7f)) }
+            item { Text("แตะที่หมวดหมู่เพื่อตั้งหรือแก้ไขงบ (นับจากรายจ่ายของเดือนปัจจุบัน)", fontSize = 13.sp, color = InkSoft) }
             items(cats.filter { it.type == EXPENSE }, key = { it.id }) { c ->
                 val b = bMap[c.id]
                 SoftCard(Modifier.clickable { edit = c }) {
                     if (b == null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("${c.emoji} ${c.name}", Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.Medium)
-                            Text("ยังไม่ตั้งงบ", color = Ink.copy(alpha = 0.5f), fontSize = 13.sp)
+                            Text("ยังไม่ตั้งงบ", color = InkSoft, fontSize = 13.sp)
                         }
                     } else {
                         val used = monthTx.filter { it.type == EXPENSE && it.categoryId == c.id }.sumOf { it.amountCents }

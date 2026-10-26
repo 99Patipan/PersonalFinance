@@ -25,6 +25,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 
 @Composable
 fun FinanceApp(vm: FinanceVM) {
@@ -41,15 +44,16 @@ fun FinanceApp(vm: FinanceVM) {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().gridBackground()) {
             Box(Modifier.weight(1f)) {
-                when (sub) {
-                    "wallets" -> WalletsScreen(vm, { sub = null }) { form = FormTarget(null, TRANSFER) }
-                    "categories" -> CategoriesScreen(vm) { sub = null }
-                    "budgets" -> BudgetsScreen(vm) { sub = null }
-                    else -> when (tab) {
-                        0 -> DashboardScreen(vm, onOpen = { detail = it }, onSeeAll = { tab = 1 })
-                        1 -> TransactionsScreen(vm) { detail = it }
-                        2 -> ReportsScreen(vm)
-                        else -> SettingsScreen(vm) { sub = it }
+                // เปลี่ยนหน้าด้วยการค่อย ๆ จางสลับ (200ms) ใช้ key เป็นตัวตัดสิน ไม่อ่านค่า tab ตอนกำลังสลับ
+                Crossfade(targetState = sub ?: "tab$tab", animationSpec = tween(200), label = "screen") { key ->
+                    when (key) {
+                        "wallets" -> WalletsScreen(vm, { sub = null }) { form = FormTarget(null, TRANSFER) }
+                        "categories" -> CategoriesScreen(vm) { sub = null }
+                        "budgets" -> BudgetsScreen(vm) { sub = null }
+                        "tab1" -> TransactionsScreen(vm) { detail = it }
+                        "tab2" -> ReportsScreen(vm)
+                        "tab3" -> SettingsScreen(vm) { sub = it }
+                        else -> DashboardScreen(vm, onOpen = { detail = it }, onSeeAll = { tab = 1 })
                     }
                 }
             }
@@ -76,13 +80,17 @@ private fun FormHost(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
 
 @Composable
 private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onAdd: () -> Unit) {
-    Surface(color = Color.White, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), shadowElevation = 10.dp) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(color = Color.White, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), shadowElevation = 8.dp) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             NavItem(Glyph.Home, "หน้าหลัก", selected == 0) { onSelect(0) }
             NavItem(Glyph.List, "รายการ", selected == 1) { onSelect(1) }
-            Box(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onAdd)
-                .semantics { contentDescription = "เพิ่มรายการ" }, contentAlignment = Alignment.Center) {
-                LineIcon(Glyph.Plus, Orange, Modifier.size(32.dp))
+            // ปุ่มหลัก: ช่องสี่เหลี่ยมมนสีส้ม ไอคอนบวกสีขาว เด่นกว่าทุกปุ่มในแถบ
+            Box(Modifier.weight(1f).height(60.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(54.dp).shadow(6.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp))
+                    .background(Action).pressClickable(onAdd).semantics { contentDescription = "เพิ่มรายการ" },
+                    contentAlignment = Alignment.Center) {
+                    LineIcon(Glyph.Plus, Color.White, Modifier.size(28.dp))
+                }
             }
             NavItem(Glyph.Chart, "รายงาน", selected == 2) { onSelect(2) }
             NavItem(Glyph.Gear, "ตั้งค่า", selected == 3) { onSelect(3) }
@@ -92,11 +100,15 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onAdd: () -> Unit)
 
 @Composable
 private fun RowScope.NavItem(glyph: Glyph, label: String, selected: Boolean, onClick: () -> Unit) {
-    Box(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick)
-        .semantics { contentDescription = label }, contentAlignment = Alignment.Center) {
-        Box(Modifier.size(width = 52.dp, height = 36.dp).clip(RoundedCornerShape(18.dp))
-            .background(if (selected) Mint else Color.Transparent), contentAlignment = Alignment.Center) {
-            LineIcon(glyph, if (selected) SageDeep else Ink.copy(alpha = 0.4f), Modifier.size(26.dp))
+    val tint by animateColorAsState(if (selected) Moss else InkSoft, tween(200), label = "navTint")
+    val pill by animateColorAsState(if (selected) Mint else Color.Transparent, tween(200), label = "navPill")
+    Column(Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(18.dp)).pressClickable(onClick),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Box(Modifier.size(width = 56.dp, height = 30.dp).clip(RoundedCornerShape(15.dp)).background(pill),
+            contentAlignment = Alignment.Center) {
+            LineIcon(glyph, tint, Modifier.size(22.dp))
         }
+        Spacer(Modifier.height(2.dp))
+        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, color = tint, maxLines = 1)
     }
 }

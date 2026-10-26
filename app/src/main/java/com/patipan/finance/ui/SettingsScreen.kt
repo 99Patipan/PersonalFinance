@@ -26,20 +26,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
 @Composable
-private fun SettingRow(emoji: String, tint: Color, title: String, sub: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 8.dp, horizontal = 2.dp),
+private fun SettingRow(glyph: Glyph, title: String, sub: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).pressClickable(onClick).padding(vertical = 8.dp, horizontal = 2.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(tint.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
-            Text(emoji, fontSize = 23.sp)
+        // ไอคอนเส้นชุดเดียวกันทั้งแอป บนแผ่นสีมิ้นต์ (ไม่ใช้อีโมจิหลายสี)
+        Box(Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(Mint), contentAlignment = Alignment.Center) {
+            LineIcon(glyph, Moss, Modifier.size(24.dp))
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text(sub, fontSize = 12.5.sp, color = Ink.copy(alpha = 0.6f))
+            Text(sub, fontSize = 13.sp, color = InkSoft)
         }
-        Box(Modifier.size(28.dp).clip(CircleShape).background(Sand), contentAlignment = Alignment.Center) {
-            Text("›", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink.copy(alpha = 0.7f))
-        }
+        LineIcon(Glyph.ChevronRight, InkSoft, Modifier.size(22.dp))
     }
 }
 
@@ -60,36 +59,45 @@ fun SettingsScreen(vm: FinanceVM, onNav: (String) -> Unit) {
     }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { ScreenTitle("ตั้งค่า") }
         item {
             SoftCard {
                 SectionTitle("จัดการข้อมูล")
-                SettingRow("👛", Color(0xFFFFC857), "กระเป๋าเงิน", "เพิ่ม แก้ไข ลบ และดูยอดคงเหลือ") { onNav("wallets") }
-                SettingRow("🏷️", Color(0xFFF58FB0), "หมวดหมู่", "จัดการหมวดรายรับ-รายจ่าย") { onNav("categories") }
-                SettingRow("🎯", Color(0xFFFF8A4C), "งบประมาณรายเดือน", "ตั้งงบแยกตามหมวดหมู่") { onNav("budgets") }
+                SettingRow(Glyph.Wallet, "กระเป๋าเงิน", "เพิ่ม แก้ไข ลบ และดูยอดคงเหลือ") { onNav("wallets") }
+                SettingRow(Glyph.Tag, "หมวดหมู่", "จัดการหมวดรายรับ-รายจ่าย") { onNav("categories") }
+                SettingRow(Glyph.Target, "งบประมาณรายเดือน", "ตั้งงบแยกตามหมวดหมู่") { onNav("budgets") }
             }
         }
         item {
             SoftCard {
-                SectionTitle("🔔 แจ้งเตือนงบประมาณ")
-                Text("เตือนเมื่อใช้เงินถึง $warn% ของงบ", fontSize = 14.sp, modifier = Modifier.padding(vertical = 6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LineIcon(Glyph.Bell, Moss, Modifier.size(22.dp))
+                    Spacer(Modifier.width(8.dp))
+                    SectionTitle("แจ้งเตือนงบประมาณ")
+                }
+                Text("เตือนเมื่อใช้เงินถึง $warn% ของงบ", fontSize = 15.sp, color = InkSoft, modifier = Modifier.padding(vertical = 8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(70, 80, 90).forEach { FilterChip(selected = warn == it, onClick = { vm.setWarn(it) }, label = { Text("$it%") }) }
+                    listOf(70, 80, 90).forEach { Pill("$it%", warn == it) { vm.setWarn(it) } }
                 }
             }
         }
         item {
             SoftCard {
                 SectionTitle("สำรองและส่งออกข้อมูล")
-                SettingRow("📤", Color(0xFF6CB6E8), "ส่งออกเป็น CSV", "เปิดใน Excel / Google Sheets ได้") { csvL.launch("PersonalFinance_$stamp.csv") }
-                SettingRow("💾", Color(0xFFB59AE8), "สำรองข้อมูลเป็น JSON", "รวมรูปใบเสร็จ เลือกตำแหน่งเก็บไฟล์เอง") { jsonL.launch("PersonalFinance_backup_$stamp.json") }
-                SettingRow("📥", Color(0xFF7BC47F), "กู้คืนจากไฟล์สำรอง", "แทนที่ข้อมูลทั้งหมดในแอป") { openL.launch(arrayOf("application/json", "text/plain", "*/*")) }
+                SettingRow(Glyph.Export, "ส่งออกเป็น CSV", "เปิดใน Excel / Google Sheets ได้") { csvL.launch("PersonalFinance_$stamp.csv") }
+                SettingRow(Glyph.Save, "สำรองข้อมูลเป็น JSON", "รวมรูปใบเสร็จ เลือกตำแหน่งเก็บไฟล์เอง") { jsonL.launch("PersonalFinance_backup_$stamp.json") }
+                SettingRow(Glyph.Restore, "กู้คืนจากไฟล์สำรอง", "แทนที่ข้อมูลทั้งหมดในแอป") { openL.launch(arrayOf("application/json", "text/plain", "*/*")) }
             }
         }
         item {
             SoftCard(tint = Mint.copy(alpha = 0.5f)) {
-                Text("🔒 ความเป็นส่วนตัว", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LineIcon(Glyph.Lock, Moss, Modifier.size(22.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("ความเป็นส่วนตัว", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                }
                 Text("ข้อมูลทั้งหมดอยู่ในเครื่องของคุณเท่านั้น แอปไม่ใช้อินเทอร์เน็ต ไม่มีโฆษณา ไม่มีการติดตามผู้ใช้ และไม่ต้องล็อกอิน",
-                    fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+                    fontSize = 14.sp, color = InkSoft, modifier = Modifier.padding(top = 6.dp))
             }
         }
     }

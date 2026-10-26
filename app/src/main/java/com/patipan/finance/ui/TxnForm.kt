@@ -21,6 +21,12 @@ import androidx.compose.ui.unit.*
 import com.patipan.finance.FinanceVM
 import com.patipan.finance.data.*
 import java.time.*
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.Dispatchers
@@ -29,12 +35,26 @@ import kotlinx.coroutines.withContext
 
 data class FormTarget(val txn: Txn?, val type: String)
 
+/** สวิตช์ประเภทรายการ: แผ่นสีเลื่อนไปหาตัวเลือกที่แตะ สีเปลี่ยนตามประเภท (จ่าย=อิฐ รับ=เขียว โอน=หมึก) */
 @Composable
-private fun TypeChip(label: String, color: Color, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Box(modifier.clip(RoundedCornerShape(14.dp))
-        .background(if (selected) color else color.copy(alpha = 0.25f))
-        .clickable(onClick = onClick).padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-        Text(label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (selected) Color.White else Ink)
+private fun TypeSwitch(type: String, onChange: (String) -> Unit) {
+    val items = listOf(EXPENSE to "รายจ่าย", INCOME to "รายรับ", TRANSFER to "โอนเงิน")
+    val idx = items.indexOfFirst { it.first == type }.coerceAtLeast(0)
+    val pillColor by animateColorAsState(
+        when (type) { EXPENSE -> ExpenseText; INCOME -> IncomeText; else -> Ink }, tween(220), label = "segColor")
+    BoxWithConstraints(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Sand).padding(4.dp)) {
+        val cell = maxWidth / 3
+        val x by animateDpAsState(cell * idx, spring(dampingRatio = 0.8f, stiffness = 400f), label = "segX")
+        Box(Modifier.offset(x = x).width(cell).height(46.dp).clip(RoundedCornerShape(14.dp)).background(pillColor))
+        Row(Modifier.fillMaxWidth()) {
+            items.forEach { (v, label) ->
+                val fg by animateColorAsState(if (v == type) Color.White else Ink, tween(180), label = "segFg")
+                Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(14.dp)).pressClickable { onChange(v) },
+                    contentAlignment = Alignment.Center) {
+                    Text(label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = fg)
+                }
+            }
+        }
     }
 }
 
@@ -48,14 +68,14 @@ private fun CategoryGrid(cats: List<Category>, selectedId: Long?, onSelect: (Lon
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { c ->
                     val sel = c.id == selectedId
-                    Column(Modifier.weight(1f).height(78.dp).clip(RoundedCornerShape(16.dp))
-                        .background(if (sel) Yellow else Cream)
-                        .border(if (sel) 2.dp else 1.dp, if (sel) Orange else Ink.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    Column(Modifier.weight(1f).height(82.dp).clip(RoundedCornerShape(16.dp))
+                        .background(if (sel) Mint else Cream)
+                        .border(if (sel) 2.dp else 1.dp, if (sel) Moss else Ink.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                         .clickable { onSelect(c.id) }.padding(horizontal = 4.dp, vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                         Text(c.emoji, fontSize = 24.sp)
                         Spacer(Modifier.height(4.dp))
-                        Text(c.name, fontSize = 11.sp, maxLines = 2, textAlign = TextAlign.Center, lineHeight = 13.sp,
+                        Text(c.name, fontSize = 12.sp, maxLines = 2, textAlign = TextAlign.Center, lineHeight = 14.sp,
                             fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal, color = Ink)
                     }
                 }
@@ -128,34 +148,32 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
         // แถบด้านบนคงที่: ปิด / ชื่อหน้า / ปุ่มบันทึก (ไม่ต้องเลื่อนลงไปกด)
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(42.dp).clip(CircleShape).background(Color.White).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                Text("✕", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
+            Box(Modifier.size(42.dp).clip(CircleShape).background(Color.White).border(1.dp, Ink.copy(alpha = 0.08f), CircleShape)
+                .pressClickable(onClose).semantics { contentDescription = "ปิด" }, contentAlignment = Alignment.Center) {
+                LineIcon(Glyph.Close, Ink, Modifier.size(20.dp))
             }
             Spacer(Modifier.width(12.dp))
             Text(if (init == null) "เพิ่มรายการ" else "แก้ไขรายการ", fontSize = 22.sp,
                 fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Button(onClick = { save() }, enabled = !saving, modifier = Modifier.height(44.dp),
-                shape = RoundedCornerShape(14.dp), contentPadding = PaddingValues(horizontal = 22.dp)) {
+            Button(onClick = { save() }, enabled = !saving, modifier = Modifier.height(46.dp),
+                shape = RoundedCornerShape(14.dp), contentPadding = PaddingValues(horizontal = 24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Moss, contentColor = Color.White)) {
                 Text("บันทึก", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
-        error?.let { Text(it, color = ExpenseRed, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)) }
+        error?.let { Text(it, color = ExpenseText, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)) }
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TypeChip("รายจ่าย", ExpenseRed, type == EXPENSE, Modifier.weight(1f)) { type = EXPENSE; catId = null; customCat = "" }
-                TypeChip("รายรับ", IncomeGreen, type == INCOME, Modifier.weight(1f)) { type = INCOME; catId = null; customCat = "" }
-                TypeChip("โอนเงิน", Color(0xFF6CB6E8), type == TRANSFER, Modifier.weight(1f)) { type = TRANSFER; catId = null; customCat = "" }
-            }
+            TypeSwitch(type) { t -> type = t; catId = null; customCat = "" }
             SoftCard {
                 OutlinedTextField(value = amount, onValueChange = { amount = filterAmount(it); error = null },
                     label = { Text("จำนวนเงิน") }, suffix = { Text("บาท") }, singleLine = true,
-                    textStyle = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold),
+                    textStyle = Num.copy(fontSize = 32.sp, fontWeight = FontWeight.ExtraBold),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(10.dp))
                 if (type != TRANSFER) {
-                    Text("หมวดหมู่", fontSize = 13.sp, color = Ink.copy(alpha = 0.6f), modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                    Text("หมวดหมู่", fontSize = 13.sp, color = InkSoft, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                     CategoryGrid(typeCats, catId) { catId = it; customCat = ""; error = null }
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(customCat, { customCat = it; if (it.isNotBlank()) catId = null; error = null },
@@ -178,9 +196,9 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { pickDate(ctx, dt.toLocalDate()) { d -> dt = LocalDateTime.of(d, dt.toLocalTime()) } },
-                        modifier = Modifier.weight(1.5f)) { Text("📅 ${dateLabel(dt.toLocalDate())}") }
+                        modifier = Modifier.weight(1.5f), shape = RoundedCornerShape(14.dp)) { LineIcon(Glyph.Calendar, Ink, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(dateLabel(dt.toLocalDate()), maxLines = 1) }
                     OutlinedButton(onClick = { pickTime(ctx, dt.toLocalTime()) { t -> dt = LocalDateTime.of(dt.toLocalDate(), t) } },
-                        modifier = Modifier.weight(1f)) { Text("🕒 ${timeLabel(dt)}") }
+                        modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) { LineIcon(Glyph.Clock, Ink, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(timeLabel(dt)) }
                 }
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(detail, { detail = it }, label = { Text("รายละเอียดเพิ่มเติม") }, modifier = Modifier.fillMaxWidth())
@@ -194,8 +212,11 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                     Image(bmp, "ใบเสร็จ", Modifier.fillMaxWidth().heightIn(max = 220.dp))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { launcher.launch("image/*") }) { Text(if (bmp == null) "📷 แนบรูป" else "เปลี่ยนรูป") }
-                    if (receipt != null) TextButton(onClick = { receipt = null }) { Text("ลบรูป", color = ExpenseRed) }
+                    TextButton(onClick = { launcher.launch("image/*") }) {
+                        LineIcon(Glyph.Camera, Moss, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp))
+                        Text(if (bmp == null) "แนบรูป" else "เปลี่ยนรูป", fontWeight = FontWeight.SemiBold)
+                    }
+                    if (receipt != null) TextButton(onClick = { receipt = null }) { Text("ลบรูป", color = ExpenseText) }
                 }
             }
             Spacer(Modifier.height(24.dp))

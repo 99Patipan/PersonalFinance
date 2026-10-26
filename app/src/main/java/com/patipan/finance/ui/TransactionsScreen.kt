@@ -54,14 +54,16 @@ fun TransactionsScreen(vm: FinanceVM, onOpen: (Txn) -> Unit) {
     val grouped = filtered.groupBy { it.localDate }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { ScreenTitle("รายการ") }
         item {
             SoftCard {
                 OutlinedTextField(query, { query = it }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    label = { Text("🔎 ค้นหา (รายละเอียด หมายเหตุ หมวด จำนวน)") })
+                    leadingIcon = { LineIcon(Glyph.Search, InkSoft, Modifier.size(22.dp)) },
+                    label = { Text("ค้นหา (รายละเอียด หมายเหตุ หมวด จำนวน)") })
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf<Pair<String?, String>>(null to "ทั้งหมด", INCOME to "รายรับ", EXPENSE to "รายจ่าย", TRANSFER to "โอน").forEach { (v, l) ->
-                        FilterChip(selected = typeF == v, onClick = { typeF = v }, label = { Text(l) })
+                        Pill(l, typeF == v) { typeF = v }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -71,10 +73,10 @@ fun TransactionsScreen(vm: FinanceVM, onOpen: (Txn) -> Unit) {
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { pickDate(ctx, from ?: LocalDate.now()) { from = it } }, modifier = Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { pickDate(ctx, from ?: LocalDate.now()) { from = it } }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) {
                         Text(from?.let { "จาก ${dateLabel(it)}" } ?: "จากวันที่", maxLines = 1, fontSize = 13.sp)
                     }
-                    OutlinedButton(onClick = { pickDate(ctx, to ?: LocalDate.now()) { to = it } }, modifier = Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { pickDate(ctx, to ?: LocalDate.now()) { to = it } }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) {
                         Text(to?.let { "ถึง ${dateLabel(it)}" } ?: "ถึงวันที่", maxLines = 1, fontSize = 13.sp)
                     }
                 }
@@ -95,7 +97,8 @@ fun TransactionsScreen(vm: FinanceVM, onOpen: (Txn) -> Unit) {
                     Row {
                         Text(dateLabel(day), Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         val net = sumOf(list, INCOME) - sumOf(list, EXPENSE)
-                        Text("${money(net)} บาท", fontSize = 13.sp, color = if (net < 0) ExpenseRed else IncomeGreen)
+                        Text("สุทธิ ${money(net)} บาท", style = Num, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                            color = if (net < 0) ExpenseText else IncomeText)
                     }
                     list.forEach { TxnRow(it, catMap, wMap, showDate = false) { onOpen(it) } }
                 }
