@@ -26,16 +26,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
 @Composable
-private fun SettingRow(emoji: String, title: String, sub: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 12.dp, horizontal = 4.dp),
+private fun SettingRow(emoji: String, tint: Color, title: String, sub: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 8.dp, horizontal = 2.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Text(emoji, fontSize = 26.sp)
+        Box(Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(tint.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
+            Text(emoji, fontSize = 23.sp)
+        }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-            Text(sub, fontSize = 13.sp, color = Ink.copy(alpha = 0.6f))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(sub, fontSize = 12.5.sp, color = Ink.copy(alpha = 0.6f))
         }
-        Text("›", fontSize = 22.sp)
+        Box(Modifier.size(28.dp).clip(CircleShape).background(Sand), contentAlignment = Alignment.Center) {
+            Text("›", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Ink.copy(alpha = 0.7f))
+        }
     }
 }
 
@@ -59,14 +63,14 @@ fun SettingsScreen(vm: FinanceVM, onNav: (String) -> Unit) {
         item {
             SoftCard {
                 SectionTitle("จัดการข้อมูล")
-                SettingRow("👛", "กระเป๋าเงิน", "เพิ่ม แก้ไข ลบ และดูยอดคงเหลือ") { onNav("wallets") }
-                SettingRow("🏷️", "หมวดหมู่", "จัดการหมวดรายรับ-รายจ่าย") { onNav("categories") }
-                SettingRow("🎯", "งบประมาณรายเดือน", "ตั้งงบแยกตามหมวดหมู่") { onNav("budgets") }
+                SettingRow("👛", Color(0xFFFFC857), "กระเป๋าเงิน", "เพิ่ม แก้ไข ลบ และดูยอดคงเหลือ") { onNav("wallets") }
+                SettingRow("🏷️", Color(0xFFF58FB0), "หมวดหมู่", "จัดการหมวดรายรับ-รายจ่าย") { onNav("categories") }
+                SettingRow("🎯", Color(0xFFFF8A4C), "งบประมาณรายเดือน", "ตั้งงบแยกตามหมวดหมู่") { onNav("budgets") }
             }
         }
         item {
             SoftCard {
-                SectionTitle("แจ้งเตือนงบประมาณ")
+                SectionTitle("🔔 แจ้งเตือนงบประมาณ")
                 Text("เตือนเมื่อใช้เงินถึง $warn% ของงบ", fontSize = 14.sp, modifier = Modifier.padding(vertical = 6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(70, 80, 90).forEach { FilterChip(selected = warn == it, onClick = { vm.setWarn(it) }, label = { Text("$it%") }) }
@@ -76,9 +80,9 @@ fun SettingsScreen(vm: FinanceVM, onNav: (String) -> Unit) {
         item {
             SoftCard {
                 SectionTitle("สำรองและส่งออกข้อมูล")
-                SettingRow("📤", "ส่งออกเป็น CSV", "เปิดใน Excel / Google Sheets ได้") { csvL.launch("PersonalFinance_$stamp.csv") }
-                SettingRow("💾", "สำรองข้อมูลเป็น JSON", "รวมรูปใบเสร็จ เลือกตำแหน่งเก็บไฟล์เอง") { jsonL.launch("PersonalFinance_backup_$stamp.json") }
-                SettingRow("📥", "กู้คืนจากไฟล์สำรอง", "แทนที่ข้อมูลทั้งหมดในแอป") { openL.launch(arrayOf("application/json", "text/plain", "*/*")) }
+                SettingRow("📤", Color(0xFF6CB6E8), "ส่งออกเป็น CSV", "เปิดใน Excel / Google Sheets ได้") { csvL.launch("PersonalFinance_$stamp.csv") }
+                SettingRow("💾", Color(0xFFB59AE8), "สำรองข้อมูลเป็น JSON", "รวมรูปใบเสร็จ เลือกตำแหน่งเก็บไฟล์เอง") { jsonL.launch("PersonalFinance_backup_$stamp.json") }
+                SettingRow("📥", Color(0xFF7BC47F), "กู้คืนจากไฟล์สำรอง", "แทนที่ข้อมูลทั้งหมดในแอป") { openL.launch(arrayOf("application/json", "text/plain", "*/*")) }
             }
         }
         item {
