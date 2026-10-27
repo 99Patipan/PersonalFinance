@@ -23,9 +23,27 @@ import com.patipan.finance.data.*
 import java.time.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 
 @Composable
 fun FinanceApp(vm: FinanceVM) {
+    val signedIn by vm.signedIn.collectAsState()
+    val loaded by vm.loaded.collectAsState()
+    CompositionLocalProvider(LocalRepo provides vm.repo) {
+        when {
+            !signedIn -> LoginScreen(vm)
+            !loaded -> LoadingScreen(vm)
+            else -> MainContent(vm)
+        }
+    }
+}
+
+@Composable
+private fun MainContent(vm: FinanceVM) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var sub by remember { mutableStateOf<String?>(null) }
     var form by remember { mutableStateOf<FormTarget?>(null) }
@@ -38,25 +56,17 @@ fun FinanceApp(vm: FinanceVM) {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().gridBackground()) {
-            Surface(color = Lime) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("🐥 สมุดรายรับ-รายจ่าย", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("วันนี้ ${dateLabel(LocalDate.now())}", fontSize = 13.sp)
-                    }
-                    Text("🐰", fontSize = 26.sp)
-                }
-            }
             Box(Modifier.weight(1f)) {
-                when (sub) {
-                    "wallets" -> WalletsScreen(vm, { sub = null }) { form = FormTarget(null, TRANSFER) }
-                    "categories" -> CategoriesScreen(vm) { sub = null }
-                    "budgets" -> BudgetsScreen(vm) { sub = null }
-                    else -> when (tab) {
-                        0 -> DashboardScreen(vm, onOpen = { detail = it }, onSeeAll = { tab = 1 })
-                        1 -> TransactionsScreen(vm) { detail = it }
-                        2 -> ReportsScreen(vm)
-                        else -> SettingsScreen(vm) { sub = it }
+                // เปลี่ยนหน้าด้วยการค่อย ๆ จางสลับ (200ms) ใช้ key เป็นตัวตัดสิน ไม่อ่านค่า tab ตอนกำลังสลับ
+                Crossfade(targetState = sub ?: "tab$tab", animationSpec = tween(200), label = "screen") { key ->
+                    when (key) {
+                        "wallets" -> WalletsScreen(vm, { sub = null }) { form = FormTarget(null, TRANSFER) }
+                        "categories" -> CategoriesScreen(vm) { sub = null }
+                        "budgets" -> BudgetsScreen(vm) { sub = null }
+                        "tab1" -> TransactionsScreen(vm) { detail = it }
+                        "tab2" -> ReportsScreen(vm)
+                        "tab3" -> SettingsScreen(vm) { sub = it }
+                        else -> DashboardScreen(vm, onOpen = { detail = it }, onSeeAll = { tab = 1 })
                     }
                 }
             }
@@ -83,28 +93,35 @@ private fun FormHost(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
 
 @Composable
 private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onAdd: () -> Unit) {
-    Surface(color = Color.White, shadowElevation = 10.dp) {
+    Surface(color = Color.White, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), shadowElevation = 8.dp) {
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            NavItem("🏠", "หน้าหลัก", selected == 0) { onSelect(0) }
-            NavItem("📒", "รายการ", selected == 1) { onSelect(1) }
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(58.dp).clip(CircleShape).background(Lime).clickable(onClick = onAdd), contentAlignment = Alignment.Center) {
-                    Text("+", fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Ink)
+            NavItem(Glyph.Home, "หน้าหลัก", selected == 0) { onSelect(0) }
+            NavItem(Glyph.List, "รายการ", selected == 1) { onSelect(1) }
+            // ปุ่มหลัก: ช่องสี่เหลี่ยมมนสีส้ม ไอคอนบวกสีขาว เด่นกว่าทุกปุ่มในแถบ
+            Box(Modifier.weight(1f).height(60.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(54.dp).shadow(6.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp))
+                    .background(Action).pressClickable(onAdd).semantics { contentDescription = "เพิ่มรายการ" },
+                    contentAlignment = Alignment.Center) {
+                    LineIcon(Glyph.Plus, Color.White, Modifier.size(28.dp))
                 }
             }
-            NavItem("📊", "รายงาน", selected == 2) { onSelect(2) }
-            NavItem("⚙️", "ตั้งค่า", selected == 3) { onSelect(3) }
+            NavItem(Glyph.Chart, "รายงาน", selected == 2) { onSelect(2) }
+            NavItem(Glyph.Gear, "ตั้งค่า", selected == 3) { onSelect(3) }
         }
     }
 }
 
 @Composable
-private fun RowScope.NavItem(emoji: String, label: String, selected: Boolean, onClick: () -> Unit) {
-    Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.clip(RoundedCornerShape(12.dp)).background(if (selected) Yellow else Color.Transparent).padding(horizontal = 14.dp, vertical = 2.dp)) {
-            Text(emoji, fontSize = 22.sp)
+private fun RowScope.NavItem(glyph: Glyph, label: String, selected: Boolean, onClick: () -> Unit) {
+    val tint by animateColorAsState(if (selected) Moss else InkSoft, tween(200), label = "navTint")
+    val pill by animateColorAsState(if (selected) Mint else Color.Transparent, tween(200), label = "navPill")
+    Column(Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(18.dp)).pressClickable(onClick),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Box(Modifier.size(width = 56.dp, height = 30.dp).clip(RoundedCornerShape(15.dp)).background(pill),
+            contentAlignment = Alignment.Center) {
+            LineIcon(glyph, tint, Modifier.size(22.dp))
         }
-        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+        Spacer(Modifier.height(2.dp))
+        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, color = tint, maxLines = 1)
     }
 }

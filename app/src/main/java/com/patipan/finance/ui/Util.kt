@@ -78,7 +78,7 @@ fun walletBalance(w: Wallet, all: List<Txn>): Long {
 
 fun sumOf(list: List<Txn>, type: String) = list.filter { it.type == type }.sumOf { it.amountCents }
 fun inMonth(all: List<Txn>, ym: YearMonth) = all.filter { YearMonth.from(it.localDate) == ym }
-fun expenseByCat(list: List<Txn>): List<Pair<Long?, Long>> =
+fun expenseByCat(list: List<Txn>): List<Pair<String?, Long>> =
     list.filter { it.type == EXPENSE }.groupBy { it.categoryId }
         .map { it.key to it.value.sumOf { x -> x.amountCents } }.sortedByDescending { it.second }
 

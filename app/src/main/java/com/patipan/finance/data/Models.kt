@@ -1,48 +1,76 @@
 package com.patipan.finance.data
 
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import org.json.JSONObject
 
 const val INCOME = "INCOME"
 const val EXPENSE = "EXPENSE"
 const val TRANSFER = "TRANSFER"
 
-@Entity(tableName = "wallets")
+/** id เป็น UUID (String) สร้างฝั่งแอป; id ว่าง = ยังไม่เคยบันทึก */
 data class Wallet(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val id: String = "",
     val name: String,
     val color: Long,
     val initialCents: Long
 )
 
-@Entity(tableName = "categories")
 data class Category(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val id: String = "",
     val name: String,
     val type: String,
     val emoji: String
 )
 
-@Entity(
-    tableName = "transactions",
-    indices = [Index("timestamp"), Index("walletId"), Index("categoryId")]
-)
 data class Txn(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val id: String = "",
     val type: String,
     val amountCents: Long,
-    val categoryId: Long?,
-    val walletId: Long,
-    val toWalletId: Long?,
+    val categoryId: String?,
+    val walletId: String,
+    val toWalletId: String?,
     val timestamp: Long,
     val detail: String,
     val note: String,
+    /** path ของรูปใน Supabase Storage (bucket receipts) เช่น "<userId>/<uuid>.jpg" */
     val receiptPath: String?
 )
 
-@Entity(tableName = "budgets")
 data class Budget(
-    @PrimaryKey val categoryId: Long,
+    val categoryId: String,
     val limitCents: Long
+)
+
+// ---------- แปลงไป-กลับ JSON ของตารางใน Supabase ----------
+
+private fun JSONObject.strOrNull(k: String): String? = if (isNull(k)) null else getString(k)
+
+fun Wallet.toJson(userId: String): JSONObject = JSONObject()
+    .put("id", id).put("user_id", userId).put("name", name)
+    .put("color", color).put("initial_cents", initialCents)
+
+fun JSONObject.toWallet() = Wallet(getString("id"), getString("name"), getLong("color"), getLong("initial_cents"))
+
+fun Category.toJson(userId: String): JSONObject = JSONObject()
+    .put("id", id).put("user_id", userId).put("name", name).put("type", type).put("emoji", emoji)
+
+fun JSONObject.toCategory() = Category(getString("id"), getString("name"), getString("type"), optString("emoji", ""))
+
+fun Budget.toJson(userId: String): JSONObject = JSONObject()
+    .put("user_id", userId).put("category_id", categoryId).put("limit_cents", limitCents)
+
+fun JSONObject.toBudget() = Budget(getString("category_id"), getLong("limit_cents"))
+
+fun Txn.toJson(userId: String): JSONObject = JSONObject()
+    .put("id", id).put("user_id", userId).put("type", type).put("amount_cents", amountCents)
+    .put("category_id", categoryId ?: JSONObject.NULL)
+    .put("wallet_id", walletId)
+    .put("to_wallet_id", toWalletId ?: JSONObject.NULL)
+    .put("timestamp_ms", timestamp).put("detail", detail).put("note", note)
+    .put("receipt_path", receiptPath ?: JSONObject.NULL)
+
+fun JSONObject.toTxn() = Txn(
+    id = getString("id"), type = getString("type"), amountCents = getLong("amount_cents"),
+    categoryId = strOrNull("category_id"), walletId = getString("wallet_id"),
+    toWalletId = strOrNull("to_wallet_id"), timestamp = getLong("timestamp_ms"),
+    detail = optString("detail", ""), note = optString("note", ""), receiptPath = strOrNull("receipt_path")
 )
