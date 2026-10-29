@@ -182,6 +182,10 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
     }
 }
 
+/** สีพื้นช่องปฏิทิน (ครีมอุ่น) – ปรับสีได้ที่นี่ */
+private val CalCell = Color(0xFFFBF1DE)
+private val CalCellBorder = Color(0xFFF1E6CC)
+
 /** ยอดเงินในช่องปฏิทิน: เต็มจำนวนมีคอมมา (ต่ำกว่า 100 บาทแสดงสตางค์ถ้ามี) */
 private fun dayMoney(c: Long): String =
     if (c < 10000L) money(c) else String.format(Locale.US, "%,d", Math.round(c / 100.0))
@@ -219,7 +223,8 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                 if (d < 1 || d > days) {
                     // วันของเดือนก่อน/หลัง แสดงเป็นสีจาง
                     val n = if (d < 1) prevDays + d else d - days
-                    Column(Modifier.weight(1f).height(66.dp).padding(1.5.dp).padding(horizontal = 4.dp, vertical = 4.dp),
+                    Column(Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(12.dp))
+                        .background(CalCell.copy(alpha = 0.45f)).padding(horizontal = 4.dp, vertical = 4.dp),
                         horizontalAlignment = Alignment.End) {
                         Text("$n", fontSize = 11.sp, color = Ink.copy(alpha = 0.25f))
                     }
@@ -233,9 +238,9 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                 val isToday = date == today
                 Column(
                     Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(12.dp))
-                        .background(if (isSel) Mint else Color.Transparent)
+                        .background(if (isSel) Mint else CalCell)
                         .border(if (isToday || isSel) 1.5.dp else 1.dp,
-                            if (isToday || isSel) Moss else Ink.copy(alpha = 0.07f), RoundedCornerShape(12.dp))
+                            if (isToday || isSel) Moss else CalCellBorder, RoundedCornerShape(12.dp))
                         .clickable { onSelect(date) }.padding(horizontal = 1.dp, vertical = 3.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
