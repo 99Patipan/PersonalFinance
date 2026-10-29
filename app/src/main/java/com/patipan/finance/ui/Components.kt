@@ -28,121 +28,200 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Context
 import android.graphics.BitmapFactory
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 val palette = listOf(
-    Color(0xFFFF8A4C), Color(0xFFFFC857), Color(0xFF7BC47F), Color(0xFFF58FB0), Color(0xFF6CB6E8),
-    Color(0xFFB59AE8), Color(0xFF4FC3B0), Color(0xFFE8A06C), Color(0xFFA3C95A), Color(0xFFD97B7B)
+    Color(0xFF8DAA93), Color(0xFFF59A62), Color(0xFFB7CBBB), Color(0xFFF9C3A1), Color(0xFF6F9479),
+    Color(0xFFD9C7A3), Color(0xFF9FB8C4), Color(0xFFC9A7B8), Color(0xFFB5B58A), Color(0xFF8C9A8F)
 )
+
+// ---------- ตัวช่วยร่วม: การกดมีแรงตอบสนอง / แอนิเมชันเข้าครั้งแรก ----------
+
+/** กดแล้วยุบลงเล็กน้อย (0.97) แล้วเด้งกลับ ใช้แทน clickable ธรรมดากับแถวและปุ่ม */
+fun Modifier.pressClickable(onClick: () -> Unit): Modifier = composed {
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.97f else 1f,
+        spring(dampingRatio = 0.6f, stiffness = 500f), label = "press")
+    this.graphicsLayer { scaleX = scale; scaleY = scale }
+        .clickable(interactionSource = src, indication = LocalIndication.current, onClick = onClick)
+}
+
+private val introSeen = mutableSetOf<String>()
+
+/** ค่า 0→1 เล่นครั้งเดียวต่อ key ตลอดการเปิดแอป (กราฟโตขึ้น ยอดเงินไล่ขึ้น) กลับมาหน้าเดิมแล้วแสดงทันที */
+@Composable
+fun rememberIntro(key: String, durationMs: Int = 650): Float {
+    val already = remember(key) { introSeen.contains(key) }
+    var go by remember(key) { mutableStateOf(already) }
+    LaunchedEffect(key) { introSeen.add(key); go = true }
+    val p by animateFloatAsState(if (go) 1f else 0f,
+        tween(if (already) 0 else durationMs, easing = FastOutSlowInEasing), label = "intro")
+    return p
+}
 
 @Composable
 fun SoftCard(modifier: Modifier = Modifier, tint: Color = Color.White, content: @Composable ColumnScope.() -> Unit) {
-    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), color = tint, shadowElevation = 2.dp) {
-        Column(Modifier.padding(16.dp), content = content)
+    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = tint,
+        border = BorderStroke(1.dp, Ink.copy(alpha = 0.07f))) {
+        Column(Modifier.padding(18.dp), content = content)
     }
 }
 
 @Composable
+fun ScreenTitle(text: String) {
+    Text(text, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Ink,
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp))
+}
+
+@Composable
 fun SectionTitle(text: String, trailing: @Composable (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+    Row(Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(text, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Ink, modifier = Modifier.weight(1f))
         trailing?.invoke()
+    }
+}
+
+/** ปุ่มกลมเล็กสำหรับ ‹ › เปลี่ยนเดือน/ปี */
+@Composable
+fun NavCircle(glyph: Glyph, desc: String, onClick: () -> Unit) {
+    Box(Modifier.size(40.dp).clip(CircleShape).background(Sand).pressClickable(onClick)
+        .semantics { contentDescription = desc }, contentAlignment = Alignment.Center) {
+        LineIcon(glyph, Ink, Modifier.size(20.dp))
+    }
+}
+
+/** ตัวกรองทรงแคปซูล: เลือกแล้วพื้นเขียวเข้ม ตัวอักษรขาว (เปลี่ยนสีนุ่ม ๆ) */
+@Composable
+fun Pill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg by animateColorAsState(if (selected) Moss else Sand, tween(180), label = "pillBg")
+    val fg by animateColorAsState(if (selected) Color.White else Ink, tween(180), label = "pillFg")
+    Box(Modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(50)).background(bg).pressClickable(onClick)
+        .padding(horizontal = 16.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = fg, maxLines = 1)
     }
 }
 
 @Composable
 fun Stat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 13.sp, color = Ink.copy(alpha = 0.7f))
-        Text(value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = color)
+    val textColor = when (color) { ExpenseRed -> ExpenseText; IncomeGreen -> IncomeText; else -> color }
+    Column(modifier.padding(horizontal = 3.dp).clip(RoundedCornerShape(18.dp)).background(color.copy(alpha = 0.10f))
+        .padding(vertical = 12.dp, horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 12.sp, color = InkSoft)
+        Spacer(Modifier.height(3.dp))
+        Text(value, style = Num, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = textColor, maxLines = 1)
     }
 }
 
 @Composable
 fun EmptyHint(text: String) {
     Text(text, Modifier.fillMaxWidth().padding(vertical = 18.dp), textAlign = TextAlign.Center,
-        color = Ink.copy(alpha = 0.55f), fontSize = 15.sp)
+        color = InkSoft, fontSize = 15.sp)
 }
 
 @Composable
-fun TxnRow(t: Txn, cats: Map<Long, Category>, wallets: Map<Long, Wallet>, showDate: Boolean = true, onClick: () -> Unit) {
+fun TxnRow(t: Txn, cats: Map<String, Category>, wallets: Map<String, Wallet>, showDate: Boolean = true, onClick: () -> Unit) {
     val cat = t.categoryId?.let { cats[it] }
     val emoji = if (t.type == TRANSFER) "🔁" else cat?.emoji ?: "🏷️"
     val title = t.detail.ifBlank { if (t.type == TRANSFER) "โอนเงิน" else cat?.name ?: "ไม่ระบุหมวด" }
     val sub = if (t.type == TRANSFER) "${wallets[t.walletId]?.name ?: "-"} → ${wallets[t.toWalletId]?.name ?: "-"}"
     else "${cat?.name ?: "ไม่ระบุหมวด"} • ${wallets[t.walletId]?.name ?: "-"}"
-    val color = when (t.type) { INCOME -> IncomeGreen; EXPENSE -> ExpenseRed; else -> Ink.copy(alpha = 0.7f) }
+    val amountColor = when (t.type) { INCOME -> IncomeText; EXPENSE -> ExpenseText; else -> InkSoft }
+    val circle = when (t.type) { INCOME -> Mint; EXPENSE -> Yellow; else -> Sand }
     val sign = when (t.type) { INCOME -> "+"; EXPENSE -> "-"; else -> "" }
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).pressClickable(onClick).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clip(CircleShape).background(Yellow.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(46.dp).clip(CircleShape).background(circle), contentAlignment = Alignment.Center) {
             Text(emoji, fontSize = 22.sp)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
-            Text(sub, fontSize = 12.sp, color = Ink.copy(alpha = 0.6f), maxLines = 1)
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1)
+            Text(sub, fontSize = 12.5.sp, color = InkSoft, maxLines = 1)
         }
+        Spacer(Modifier.width(8.dp))
         Column(horizontalAlignment = Alignment.End) {
-            Text("$sign${money(t.amountCents)} บาท", color = color, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("$sign${money(t.amountCents)} บาท", style = Num, color = amountColor,
+                fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
+            Spacer(Modifier.height(2.dp))
             Text(if (showDate) "${dateLabel(t.localDate)} ${timeLabel(t.ldt)}" else timeLabel(t.ldt),
-                fontSize = 11.sp, color = Ink.copy(alpha = 0.55f))
+                fontSize = 12.sp, color = InkSoft)
         }
     }
 }
 
 @Composable
-fun DualBars(a: List<Long>, b: List<Long>, modifier: Modifier = Modifier.fillMaxWidth().height(150.dp)) {
+fun DualBars(a: List<Long>, b: List<Long>, modifier: Modifier = Modifier.fillMaxWidth().height(150.dp), introKey: String = "bars") {
+    val grow = rememberIntro(introKey)
     Canvas(modifier) {
         val n = a.size
         if (n == 0) return@Canvas
         val mx = maxOf(a.maxOrNull() ?: 0L, b.maxOrNull() ?: 0L, 1L).toFloat()
         val gw = size.width / n
         val bw = gw * 0.38f
+        val r = CornerRadius(minOf(bw / 2f, 4.dp.toPx()))
+        // เส้นกริดกลางจาง ๆ + เส้นฐาน
+        drawLine(Ink.copy(alpha = 0.06f), Offset(0f, size.height / 2f), Offset(size.width, size.height / 2f), 2f)
         for (i in 0 until n) {
             val x = i * gw + gw * 0.08f
-            val h1 = a[i] / mx * size.height
-            val h2 = b[i] / mx * size.height
-            if (h1 > 0f) drawRect(IncomeGreen, Offset(x, size.height - h1), Size(bw, h1))
-            if (h2 > 0f) drawRect(ExpenseRed, Offset(x + bw, size.height - h2), Size(bw, h2))
+            val h1 = a[i] / mx * size.height * grow
+            val h2 = b[i] / mx * size.height * grow
+            if (h1 > 0f) drawRoundRect(IncomeGreen, Offset(x, size.height - h1), Size(bw, h1), r)
+            if (h2 > 0f) drawRoundRect(Orange, Offset(x + bw, size.height - h2), Size(bw, h2), r)
         }
-        drawLine(Ink.copy(alpha = 0.3f), Offset(0f, size.height), Offset(size.width, size.height), 2f)
+        drawLine(Ink.copy(alpha = 0.14f), Offset(0f, size.height), Offset(size.width, size.height), 2f)
     }
 }
 
 @Composable
 fun ChartLegend() {
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.Center) {
-        Box(Modifier.size(10.dp).background(IncomeGreen, CircleShape)); Text(" รายรับ   ", fontSize = 12.sp)
-        Box(Modifier.size(10.dp).background(ExpenseRed, CircleShape)); Text(" รายจ่าย", fontSize = 12.sp)
+    Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(10.dp).background(IncomeGreen, CircleShape)); Text("  รายรับ        ", fontSize = 13.sp, color = InkSoft)
+        Box(Modifier.size(10.dp).background(Orange, CircleShape)); Text("  รายจ่าย", fontSize = 13.sp, color = InkSoft)
     }
 }
 
 @Composable
-fun CategoryShare(items: List<Pair<String, Long>>) {
+fun CategoryShare(items: List<Pair<String, Long>>, introKey: String = "donut") {
     val total = items.sumOf { it.second }
     if (total <= 0) { EmptyHint("ยังไม่มีรายจ่ายในช่วงนี้"); return }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        Canvas(Modifier.size(150.dp)) {
-            val sw = 30.dp.toPx()
+    val grow = rememberIntro(introKey, 800)
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(176.dp)) {
+            val sw = 26.dp.toPx()
             var start = -90f
             items.forEachIndexed { i, p ->
-                val sweep = p.second.toFloat() / total * 360f
-                drawArc(palette[i % palette.size], start, maxOf(sweep - 1f, 0.5f), false,
+                val sweep = p.second.toFloat() / total * 360f * grow
+                drawArc(palette[i % palette.size], start, maxOf(sweep - 1.5f, 0.5f), false,
                     topLeft = Offset(sw / 2, sw / 2), size = Size(size.width - sw, size.height - sw),
                     style = Stroke(sw))
                 start += sweep
             }
         }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("รวม", fontSize = 12.sp, color = InkSoft)
+            Text(money(total), style = Num, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Ink, maxLines = 1)
+            Text("บาท", fontSize = 12.sp, color = InkSoft)
+        }
     }
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(14.dp))
     items.take(8).forEachIndexed { i, p ->
-        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(12.dp).background(palette[i % palette.size], CircleShape))
-            Spacer(Modifier.width(8.dp))
-            Text(p.first, Modifier.weight(1f), fontSize = 15.sp, maxLines = 1)
-            Text(String.format(Locale.US, "%.0f%%", p.second * 100.0 / total), fontSize = 13.sp, color = Ink.copy(alpha = 0.6f))
             Spacer(Modifier.width(10.dp))
-            Text("${money(p.second)} บาท", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(p.first, Modifier.weight(1f), fontSize = 15.sp, maxLines = 1)
+            Text(String.format(Locale.US, "%.0f%%", p.second * 100.0 / total), fontSize = 13.sp, color = InkSoft)
+            Spacer(Modifier.width(10.dp))
+            Text("${money(p.second)} บาท", style = Num, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
         }
     }
 }
@@ -152,13 +231,13 @@ fun Picker(label: String, value: String, options: List<String>, modifier: Modifi
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
         Surface(onClick = { open = true }, shape = RoundedCornerShape(14.dp), color = Cream,
-            border = BorderStroke(1.dp, Ink.copy(alpha = 0.2f)), modifier = Modifier.fillMaxWidth()) {
+            border = BorderStroke(1.dp, Ink.copy(alpha = 0.22f)), modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(label, fontSize = 11.sp, color = Ink.copy(alpha = 0.6f))
+                    Text(label, fontSize = 12.sp, color = InkSoft)
                     Text(value, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
-                Text("▾", fontSize = 16.sp)
+                LineIcon(Glyph.ChevronDown, InkSoft, Modifier.size(20.dp))
             }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
@@ -172,7 +251,7 @@ fun Picker(label: String, value: String, options: List<String>, modifier: Modifi
 @Composable
 fun ConfirmDialog(title: String, text: String, confirmLabel: String = "ยืนยัน", onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { Text(text) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel, color = ExpenseRed) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel, color = ExpenseText) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("ยกเลิก") } })
 }
 
@@ -185,44 +264,59 @@ fun pickTime(ctx: Context, initial: LocalTime, onPick: (LocalTime) -> Unit) {
     TimePickerDialog(ctx, { _, h, m -> onPick(LocalTime.of(h, m)) }, initial.hour, initial.minute, true).show()
 }
 
+/** ให้หน้าจอต่าง ๆ เข้าถึง Repository เพื่อโหลดรูปใบเสร็จจาก Supabase Storage */
+val LocalRepo = staticCompositionLocalOf<Repository?> { null }
+
+/** โหลดรูปใบเสร็จแบบอะซิงก์ (ดาวน์โหลดครั้งแรก แล้วเก็บแคชในเครื่อง) ระหว่างโหลดคืน null */
 @Composable
-fun rememberReceipt(path: String?): ImageBitmap? = remember(path) {
-    path?.let { p ->
-        runCatching {
-            val o = BitmapFactory.Options().apply { inSampleSize = 4 }
-            BitmapFactory.decodeFile(p, o)?.asImageBitmap()
-        }.getOrNull()
+fun rememberReceipt(path: String?): ImageBitmap? {
+    val repo = LocalRepo.current
+    val state = produceState<ImageBitmap?>(initialValue = null, path, repo) {
+        value = if (path == null || repo == null) null else repo.loadReceipt(path)?.asImageBitmap()
     }
+    return state.value
 }
 
 @Composable
-fun BudgetBar(name: String, used: Long, limit: Long, warnPercent: Int) {
+fun BudgetBar(name: String, used: Long, limit: Long, warnPercent: Int, emoji: String? = null) {
     val pct = if (limit > 0) used * 100.0 / limit else 0.0
     val over = used > limit
     val near = !over && pct >= warnPercent
-    val color = when { over -> ExpenseRed; near -> Orange; else -> IncomeGreen }
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(name, Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text("${money(used)} / ${money(limit)} บาท", fontSize = 14.sp)
+    val barColor = when { over -> ExpenseRed; near -> Orange; else -> Sage }
+    val textColor = when { over -> ExpenseText; near -> ExpenseText; else -> InkSoft }
+    val grow = rememberIntro("budget", 700)
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (emoji != null) {
+            Box(Modifier.size(46.dp).clip(CircleShape).background(Mint), contentAlignment = Alignment.Center) {
+                Text(emoji, fontSize = 22.sp)
+            }
+            Spacer(Modifier.width(12.dp))
         }
-        Spacer(Modifier.height(4.dp))
-        Box(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)).background(Cream)) {
-            Box(Modifier.fillMaxWidth((pct / 100.0).coerceIn(0.0, 1.0).toFloat()).fillMaxHeight().background(color))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(name, Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1)
+                Text("${money(used)} / ${money(limit)} บาท", style = Num, fontSize = 13.sp, color = InkSoft)
+            }
+            Spacer(Modifier.height(7.dp))
+            Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Sand)) {
+                Box(Modifier.fillMaxWidth(((pct / 100.0).coerceIn(0.0, 1.0) * grow).toFloat()).fillMaxHeight()
+                    .clip(RoundedCornerShape(5.dp)).background(barColor))
+            }
+            val remain = limit - used
+            Spacer(Modifier.height(4.dp))
+            Text(
+                when {
+                    over -> "เกินงบ ${money(-remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
+                    near -> "ใกล้เกินงบ เหลือ ${money(remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
+                    else -> "เหลือ ${money(remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
+                }, fontSize = 12.5.sp, color = textColor, fontWeight = if (over || near) FontWeight.SemiBold else FontWeight.Normal
+            )
         }
-        val remain = limit - used
-        Text(
-            when {
-                over -> "⚠️ เกินงบ ${money(-remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
-                near -> "⚠️ ใกล้เกินงบ เหลือ ${money(remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
-                else -> "เหลือ ${money(remain)} บาท (ใช้ไป ${String.format(Locale.US, "%.0f", pct)}%)"
-            }, fontSize = 13.sp, color = color
-        )
     }
 }
 
 @Composable
-fun TxnDetailDialog(t: Txn, cats: Map<Long, Category>, wallets: Map<Long, Wallet>,
+fun TxnDetailDialog(t: Txn, cats: Map<String, Category>, wallets: Map<String, Wallet>,
                     onEdit: () -> Unit, onDelete: () -> Unit, onDismiss: () -> Unit) {
     var confirm by remember { mutableStateOf(false) }
     if (confirm) ConfirmDialog("ลบรายการนี้?",
@@ -232,7 +326,7 @@ fun TxnDetailDialog(t: Txn, cats: Map<Long, Category>, wallets: Map<Long, Wallet
     val type = when (t.type) { INCOME -> "รายรับ"; EXPENSE -> "รายจ่าย"; else -> "โอนเงิน" }
     @Composable fun line(k: String, v: String) {
         if (v.isNotBlank()) Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-            Text(k, Modifier.width(90.dp), color = Ink.copy(alpha = 0.6f)); Text(v, Modifier.weight(1f))
+            Text(k, Modifier.width(90.dp), color = InkSoft); Text(v, Modifier.weight(1f))
         }
     }
     AlertDialog(
@@ -255,7 +349,7 @@ fun TxnDetailDialog(t: Txn, cats: Map<Long, Category>, wallets: Map<Long, Wallet
         confirmButton = { TextButton(onClick = onEdit) { Text("แก้ไข") } },
         dismissButton = {
             Row {
-                TextButton(onClick = { confirm = true }) { Text("ลบ", color = ExpenseRed) }
+                TextButton(onClick = { confirm = true }) { Text("ลบ", color = ExpenseText) }
                 TextButton(onClick = onDismiss) { Text("ปิด") }
             }
         }

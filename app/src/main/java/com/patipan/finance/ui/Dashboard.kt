@@ -22,6 +22,9 @@ import com.patipan.finance.FinanceVM
 import com.patipan.finance.data.*
 import java.time.*
 import java.util.Locale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 
 @Composable
 fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) {
@@ -40,23 +43,43 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
     val total = wallets.sumOf { walletBalance(it, txns) }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // 1) ยอดรวม + กระเป๋า
+        // 1) ยอดรวม + กระเป๋า — ตัวเลขใหญ่คือพระเอกของหน้า ไล่ขึ้นครั้งแรกที่เปิดแอป
         item {
-            SoftCard {
-                Text("ยอดเงินคงเหลือรวม (จาก ${wallets.size} กระเป๋า)", fontSize = 14.sp, color = Ink.copy(alpha = 0.7f))
-                Text("${money(total)} บาท", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold,
-                    color = if (total < 0) ExpenseRed else Ink)
-                Spacer(Modifier.height(10.dp))
-                wallets.chunked(2).forEach { row ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { w ->
-                            Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
-                                .background(Color(w.color).copy(alpha = 0.3f)).padding(12.dp)) {
-                                Text("👛 ${w.name}", fontSize = 14.sp, maxLines = 1)
-                                Text(money(walletBalance(w, txns)), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            val intro = rememberIntro("hero", 800)
+            val shown = (total * intro.toDouble()).toLong()
+            Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = Forest) {
+                Box(Modifier.background(Brush.linearGradient(listOf(Forest, ForestLight))).drawBehind {
+                    drawCircle(Color.White.copy(alpha = 0.07f), radius = size.width * 0.38f,
+                        center = Offset(size.width * 0.96f, size.height * 0.02f))
+                    drawCircle(Color.White.copy(alpha = 0.05f), radius = size.width * 0.20f,
+                        center = Offset(size.width * 0.78f, size.height * 0.98f))
+                }) {
+                    Column(Modifier.padding(22.dp)) {
+                        Text("ยอดเงินคงเหลือรวม", fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f))
+                        Spacer(Modifier.height(2.dp))
+                        Text(buildAnnotatedString {
+                            withStyle(SpanStyle(fontSize = 40.sp, fontWeight = FontWeight.ExtraBold)) { append(money(shown)) }
+                            withStyle(SpanStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold)) { append("  บาท") }
+                        }, style = Num, maxLines = 1, color = if (total < 0) Color(0xFFFFD9C7) else Color.White)
+                        Text("จาก ${wallets.size} กระเป๋า", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
+                        Spacer(Modifier.height(16.dp))
+                        wallets.chunked(2).forEach { row ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                row.forEach { w ->
+                                    Row(Modifier.weight(1f).clip(RoundedCornerShape(18.dp))
+                                        .background(Color.White.copy(alpha = 0.16f)).padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(10.dp).background(Color(w.color), CircleShape))
+                                        Spacer(Modifier.width(8.dp))
+                                        Column {
+                                            Text(w.name, fontSize = 13.sp, color = Color.White.copy(alpha = 0.92f), maxLines = 1)
+                                            Text(money(walletBalance(w, txns)), style = Num, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                                        }
+                                    }
+                                }
+                                if (row.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }
-                        if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
@@ -65,13 +88,14 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
         item {
             SoftCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { vm.month.value = ym.minusMonths(1); vm.selectedDay.value = null }) { Text("‹", fontSize = 24.sp) }
-                    Text(monthLabel(ym), Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = { vm.month.value = ym.plusMonths(1); vm.selectedDay.value = null }) { Text("›", fontSize = 24.sp) }
+                    NavCircle(Glyph.ChevronLeft, "เดือนก่อนหน้า") { vm.month.value = ym.minusMonths(1); vm.selectedDay.value = null }
+                    Text(monthLabel(ym), Modifier.weight(1f), textAlign = TextAlign.Center,
+                        fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    NavCircle(Glyph.ChevronRight, "เดือนถัดไป") { vm.month.value = ym.plusMonths(1); vm.selectedDay.value = null }
                 }
                 if (ym != YearMonth.now()) TextButton(onClick = { vm.month.value = YearMonth.now(); vm.selectedDay.value = null },
                     modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("กลับเดือนปัจจุบัน") }
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Row(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                     Stat("รายจ่ายรวม", "${money(expense)} บาท", ExpenseRed, Modifier.weight(1f))
                     Stat("รายรับรวม", "${money(income)} บาท", IncomeGreen, Modifier.weight(1f))
                     Stat("ยอดสุทธิ", "${money(income - expense)} บาท", if (income - expense < 0) ExpenseRed else Ink, Modifier.weight(1f))
@@ -79,20 +103,21 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
                 CalendarGrid(ym, monthTx, sel) { d -> vm.selectedDay.value = if (sel == d) null else d }
             }
         }
-        if (sel != null) item {
-            val day = txns.filter { it.localDate == sel }
-            SoftCard(tint = Yellow.copy(alpha = 0.25f)) {
-                Text("รายการวันที่ ${dateLabel(sel!!)}", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                if (day.isEmpty()) EmptyHint("ไม่มีรายการในวันนี้")
-                day.forEach { TxnRow(it, catMap, wMap, showDate = false) { onOpen(it) } }
-            }
-        }
-        // 3) ธุรกรรมล่าสุด
+        // 3) ธุรกรรมล่าสุด / รายการของวันที่เลือก (การ์ดเดียว หน้าตาเหมือนเดิมเสมอ)
         item {
+            val day = sel?.let { s -> txns.filter { it.localDate == s } }
             SoftCard {
-                SectionTitle("ธุรกรรมล่าสุด") { TextButton(onClick = onSeeAll) { Text("ดูทั้งหมด") } }
-                if (txns.isEmpty()) EmptyHint("ยังไม่มีรายการ กดปุ่ม + เพื่อเพิ่มรายการแรก")
-                txns.take(5).forEach { TxnRow(it, catMap, wMap) { onOpen(it) } }
+                if (sel == null) {
+                    SectionTitle("ธุรกรรมล่าสุด") { TextButton(onClick = onSeeAll) { Text("ดูทั้งหมด") } }
+                    if (txns.isEmpty()) EmptyHint("ยังไม่มีรายการ กดปุ่ม + เพื่อเพิ่มรายการแรก")
+                    txns.take(5).forEach { TxnRow(it, catMap, wMap) { onOpen(it) } }
+                } else {
+                    SectionTitle("รายการวันที่ ${dateLabel(sel!!)}") {
+                        TextButton(onClick = { vm.selectedDay.value = null }) { Text("ล่าสุด") }
+                    }
+                    if (day.isNullOrEmpty()) EmptyHint("ไม่มีรายการในวันนี้")
+                    day?.forEach { TxnRow(it, catMap, wMap, showDate = false) { onOpen(it) } }
+                }
             }
         }
         // 4) กราฟรายวัน
@@ -105,42 +130,50 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
                 Spacer(Modifier.height(8.dp))
                 DualBars(inc, exp)
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                    Text("1", fontSize = 11.sp); Spacer(Modifier.weight(1f)); Text("$n", fontSize = 11.sp)
+                    Text("1", fontSize = 12.sp, color = InkSoft); Spacer(Modifier.weight(1f))
+                    Text("$n", fontSize = 12.sp, color = InkSoft)
                 }
                 ChartLegend()
             }
         }
-        // 5) สัดส่วนตามหมวดหมู่
+        // 5) สัดส่วนค่าใช้จ่าย (โดนัท)
         item {
             SoftCard {
-                SectionTitle("รายจ่ายตามหมวดหมู่")
-                Text("${money(expense)} บาท", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = ExpenseRed)
-                Spacer(Modifier.height(8.dp))
+                SectionTitle("ค่าใช้จ่ายตามหมวดหมู่")
+                Spacer(Modifier.height(6.dp))
                 CategoryShare(expenseByCat(monthTx).map { catName(it.first?.let { id -> catMap[id] }) to it.second })
             }
         }
-        // 6) งบประมาณ
+        // 6) เป้าหมายงบประมาณ
         item {
             SoftCard {
-                SectionTitle("งบประมาณเดือนนี้")
+                SectionTitle("เป้าหมายงบประมาณ")
                 if (budgets.isEmpty()) EmptyHint("ยังไม่ได้ตั้งงบประมาณ ไปที่ ตั้งค่า > งบประมาณ")
                 budgets.forEach { b ->
                     val c = catMap[b.categoryId] ?: return@forEach
                     val used = monthTx.filter { it.type == EXPENSE && it.categoryId == b.categoryId }.sumOf { it.amountCents }
-                    BudgetBar("${c.emoji} ${c.name}", used, b.limitCents, warn)
+                    BudgetBar(c.name, used, b.limitCents, warn, emoji = c.emoji)
                 }
             }
         }
         // 7) บันทึกของฉัน
         item {
             val notes = monthTx.filter { it.note.isNotBlank() }
-            SoftCard(tint = Pink.copy(alpha = 0.25f)) {
-                SectionTitle("📝 บันทึกของฉัน")
-                if (notes.isEmpty()) EmptyHint("ยังไม่มีบันทึกในเดือนนี้ (เพิ่มได้ในช่อง หมายเหตุ ของแต่ละรายการ)")
-                notes.take(10).forEach {
-                    Column(Modifier.fillMaxWidth().clickable { onOpen(it) }.padding(vertical = 6.dp)) {
-                        Text(it.note, fontSize = 15.sp)
-                        Text("${dateLabel(it.localDate)} • ${money(it.amountCents)} บาท", fontSize = 12.sp, color = Ink.copy(alpha = 0.6f))
+            SoftCard {
+                SectionTitle("บันทึกของฉัน")
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.Top) {
+                    Box(Modifier.padding(top = 12.dp)) { LineIcon(Glyph.Pencil, Moss, Modifier.size(24.dp)) }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(Sand.copy(alpha = 0.7f)).padding(14.dp)) {
+                        if (notes.isEmpty()) Text("ยังไม่มีบันทึกในเดือนนี้ (เพิ่มได้ในช่อง หมายเหตุ ของแต่ละรายการ)",
+                            fontSize = 14.sp, color = InkSoft)
+                        notes.take(10).forEach {
+                            Column(Modifier.fillMaxWidth().clickable { onOpen(it) }.padding(vertical = 6.dp)) {
+                                Text(it.note, fontSize = 15.sp)
+                                Text("${dateLabel(it.localDate)} • ${money(it.amountCents)} บาท", fontSize = 12.sp, color = InkSoft)
+                            }
+                        }
                     }
                 }
             }
@@ -163,7 +196,7 @@ private fun dayMoneySize(t: String) = when {
 @Composable
 private fun DayAmount(cents: Long, color: Color) {
     val t = dayMoney(cents)
-    Text(t, fontSize = dayMoneySize(t), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+    Text(t, style = Num, fontSize = dayMoneySize(t), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
         color = if (cents > 0) color else color.copy(alpha = 0.3f))
 }
 
@@ -176,7 +209,7 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
     val rows = (offset + days + 6) / 7
     val today = LocalDate.now()
     Row(Modifier.fillMaxWidth()) {
-        thDays.forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+        thDays.forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = InkSoft) }
     }
     Spacer(Modifier.height(4.dp))
     for (r in 0 until rows) {
@@ -186,8 +219,7 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                 if (d < 1 || d > days) {
                     // วันของเดือนก่อน/หลัง แสดงเป็นสีจาง
                     val n = if (d < 1) prevDays + d else d - days
-                    Column(Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(10.dp))
-                        .background(Cream.copy(alpha = 0.35f)).padding(horizontal = 3.dp, vertical = 2.dp),
+                    Column(Modifier.weight(1f).height(66.dp).padding(1.5.dp).padding(horizontal = 4.dp, vertical = 4.dp),
                         horizontalAlignment = Alignment.End) {
                         Text("$n", fontSize = 11.sp, color = Ink.copy(alpha = 0.25f))
                     }
@@ -200,27 +232,30 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                 val isSel = date == selected
                 val isToday = date == today
                 Column(
-                    Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(10.dp))
-                        .background(if (isSel) Yellow else Cream.copy(alpha = 0.7f))
-                        .clickable { onSelect(date) }.padding(horizontal = 1.dp, vertical = 2.dp),
+                    Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(12.dp))
+                        .background(if (isSel) Mint else Color.Transparent)
+                        .border(if (isToday || isSel) 1.5.dp else 1.dp,
+                            if (isToday || isSel) Moss else Ink.copy(alpha = 0.07f), RoundedCornerShape(12.dp))
+                        .clickable { onSelect(date) }.padding(horizontal = 1.dp, vertical = 3.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (isToday) Box(Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFE5B400)))
-                        Spacer(Modifier.weight(1f))
-                        Text("$d", fontSize = 11.sp, color = Ink.copy(alpha = if (isToday) 0.9f else 0.55f),
-                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal)
-                    }
+                    Text("$d", Modifier.fillMaxWidth().padding(end = 3.dp), textAlign = TextAlign.End, fontSize = 11.sp,
+                        color = if (isToday || isSel) Moss else InkSoft,
+                        fontWeight = if (isToday || isSel) FontWeight.Bold else FontWeight.Normal)
                     Spacer(Modifier.weight(1f))
-                    // วันที่มีรายการ: แสดงทั้งรายจ่าย (แดง) และรายรับ (เขียว) ฝั่งที่เป็น 0 จะจางลง
+                    // วันที่มีรายการ: แสดงทั้งรายจ่าย (ส้ม) และรายรับ (เขียว) ฝั่งที่เป็น 0 จะจางลง
                     if (list.isNotEmpty()) {
-                        DayAmount(exp, ExpenseRed)
-                        DayAmount(inc, IncomeGreen)
+                        DayAmount(exp, ExpenseText)
+                        DayAmount(inc, IncomeText)
                     }
                 }
             }
         }
     }
-    Text("แดง = รายจ่าย  เขียว = รายรับ  (โอนเงินไม่นับ)", fontSize = 11.sp, color = Ink.copy(alpha = 0.55f),
-        modifier = Modifier.padding(top = 6.dp))
+    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(7.dp).background(ExpenseText, CircleShape))
+        Text(" รายจ่าย    ", fontSize = 12.sp, color = InkSoft)
+        Box(Modifier.size(7.dp).background(IncomeText, CircleShape))
+        Text(" รายรับ    (โอนเงินไม่นับ)", fontSize = 12.sp, color = InkSoft)
+    }
 }

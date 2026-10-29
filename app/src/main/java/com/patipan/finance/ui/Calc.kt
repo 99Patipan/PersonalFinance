@@ -90,33 +90,44 @@ fun calcKey(e: String, k: String): String {
     }
 }
 
-private val KeyBg = Color(0xFFF2F7E6)
-private val KeyBorder = Color(0xFFE6EDD3)
-private val SaveBg = Color(0xFFC8D96A)
+private val KeyBg = Color(0xFFEEF3EC)
+private val KeyBorder = Color(0xFFDDE6DB)
 
 @Composable
-private fun PadKey(label: String, modifier: Modifier, bg: Color = KeyBg, size: Int = 24, onClick: () -> Unit) {
+private fun PadKey(modifier: Modifier, bg: Color = KeyBg, onClick: () -> Unit, content: @Composable () -> Unit) {
     Box(
         modifier.height(54.dp).clip(RoundedCornerShape(50)).background(bg)
-            .border(1.dp, KeyBorder, RoundedCornerShape(50)).clickable(onClick = onClick),
+            .border(1.dp, KeyBorder, RoundedCornerShape(50)).pressClickable(onClick),
         contentAlignment = Alignment.Center
-    ) { Text(label, fontSize = size.sp, fontWeight = FontWeight.ExtraBold, color = Ink) }
+    ) { content() }
 }
 
-/** แป้นเครื่องคิดเลข: แถวบนมี = ⌫ และปุ่มบันทึก */
+@Composable
+private fun PadKey(label: String, modifier: Modifier, onClick: () -> Unit) =
+    PadKey(modifier, KeyBg, onClick) { Text(label, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Ink) }
+
+/** แป้นเครื่องคิดเลข: แถวบนมี = ⌫ และปุ่มบันทึกรายการ */
 @Composable
 fun CalcKeypad(onKey: (String) -> Unit, onSave: () -> Unit, onHide: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier.fillMaxWidth().background(Color.White).navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("▼ ซ่อนแป้นพิมพ์", fontSize = 12.sp, color = Ink.copy(alpha = 0.55f),
-            modifier = Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onHide).padding(horizontal = 12.dp, vertical = 2.dp))
+        Row(Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onHide).padding(horizontal = 12.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            LineIcon(Glyph.ChevronDown, InkSoft, Modifier.size(14.dp))
+            Text(" ซ่อนแป้นพิมพ์", fontSize = 12.sp, color = InkSoft)
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PadKey("=", Modifier.weight(1f)) { onKey("=") }
             PadKey("⌫", Modifier.weight(1f)) { onKey("⌫") }
-            PadKey("👛  บันทึกรายการ", Modifier.weight(2f), SaveBg, 18) { onSave() }
+            PadKey(Modifier.weight(2f), Moss, onSave) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LineIcon(Glyph.Wallet, Color.White, Modifier.size(22.dp))
+                    Text("  บันทึกรายการ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                }
+            }
         }
         listOf(
             listOf("7", "8", "9", "+"),
