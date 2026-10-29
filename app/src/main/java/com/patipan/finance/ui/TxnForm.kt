@@ -13,6 +13,7 @@ import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -57,6 +58,7 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
     var receipt by remember { mutableStateOf(init?.receiptPath) }
     var error by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
+    var showPad by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) scope.launch {
@@ -69,7 +71,7 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
 
     fun save() {
         if (saving) return
-        val cents = parseCents(amount)
+        val cents = exprToCents(amount)
         when {
             cents == null || cents <= 0L -> { error = "กรุณากรอกจำนวนเงินที่มากกว่า 0"; return }
             walletId == null -> { error = "กรุณาเลือกกระเป๋าเงิน"; return }
@@ -87,7 +89,8 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
     }
 
     Surface(Modifier.fillMaxSize(), color = Cream) {
-        Column(Modifier.fillMaxSize().gridBackground().verticalScroll(rememberScrollState()).padding(16.dp),
+      Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f).fillMaxWidth().gridBackground().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(if (init == null) "เพิ่มรายการ" else "แก้ไขรายการ", fontSize = 24.sp,
@@ -100,11 +103,21 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 TypeChip("โอนเงิน", Color(0xFF6CB6E8), type == TRANSFER, Modifier.weight(1f)) { type = TRANSFER; catId = null }
             }
             SoftCard {
-                OutlinedTextField(value = amount, onValueChange = { amount = filterAmount(it); error = null },
-                    label = { Text("จำนวนเงิน") }, suffix = { Text("บาท") }, singleLine = true,
-                    textStyle = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth())
+                // ช่องจำนวนเงิน: แตะแล้วเปิดแป้นเครื่องคิดเลข (ไม่เปิดคีย์บอร์ดระบบ)
+                val result = if (hasOperator(amount)) evalExpr(amount) else null
+                Box(Modifier.fillMaxWidth().clickable { showPad = true }) {
+                    OutlinedTextField(value = amount, onValueChange = {}, enabled = false,
+                        label = { Text("จำนวนเงิน") }, suffix = { Text("บาท") }, singleLine = true,
+                        placeholder = { Text("0", fontSize = 28.sp, fontWeight = FontWeight.Bold) },
+                        supportingText = { if (result != null) Text("= ${money(result.setScale(2, java.math.RoundingMode.HALF_UP).movePointRight(2).toLong())} บาท") },
+                        textStyle = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = Ink, disabledLabelColor = Ink.copy(alpha = 0.7f),
+                            disabledSuffixColor = Ink, disabledPlaceholderColor = Ink.copy(alpha = 0.35f),
+                            disabledSupportingTextColor = IncomeGreen,
+                            disabledBorderColor = if (showPad) Orange else Ink.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth())
+                }
                 Spacer(Modifier.height(10.dp))
                 if (type != TRANSFER) {
                     Picker("หมวดหมู่", catName(typeCats.firstOrNull { it.id == catId }).takeIf { catId != null } ?: "เลือกหมวดหมู่",
@@ -129,9 +142,11 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                         modifier = Modifier.weight(1f)) { Text("🕒 ${timeLabel(dt)}") }
                 }
                 Spacer(Modifier.height(10.dp))
-                OutlinedTextField(detail, { detail = it }, label = { Text("รายละเอียดเพิ่มเติม") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(detail, { detail = it }, label = { Text("รายละเอียดเพิ่มเติม") },
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) showPad = false })
                 Spacer(Modifier.height(10.dp))
-                OutlinedTextField(note, { note = it }, label = { Text("หมายเหตุ") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(note, { note = it }, label = { Text("หมายเหตุ") }, minLines = 2,
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) showPad = false })
             }
             SoftCard {
                 Text("รูปใบเสร็จ (ไม่บังคับ)", fontWeight = FontWeight.Bold)
@@ -149,5 +164,11 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 shape = RoundedCornerShape(16.dp)) { Text("บันทึกรายการ", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
             Spacer(Modifier.height(24.dp))
         }
+        if (showPad) CalcKeypad(
+            onKey = { k -> amount = calcKey(amount, k); error = null },
+            onSave = { save() },
+            onHide = { showPad = false }
+        )
+      }
     }
 }

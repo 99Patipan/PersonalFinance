@@ -149,11 +149,30 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
     }
 }
 
+/** ยอดเงินในช่องปฏิทิน: เต็มจำนวนมีคอมมา (ต่ำกว่า 100 บาทแสดงสตางค์ถ้ามี) */
+private fun dayMoney(c: Long): String =
+    if (c < 10000L) money(c) else String.format(Locale.US, "%,d", Math.round(c / 100.0))
+
+private fun dayMoneySize(t: String) = when {
+    t.length <= 4 -> 12.sp
+    t.length == 5 -> 11.sp
+    t.length == 6 -> 10.sp
+    else -> 8.5.sp
+}
+
+@Composable
+private fun DayAmount(cents: Long, color: Color) {
+    val t = dayMoney(cents)
+    Text(t, fontSize = dayMoneySize(t), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+        color = if (cents > 0) color else color.copy(alpha = 0.3f))
+}
+
 @Composable
 fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSelect: (LocalDate) -> Unit) {
     val byDay = remember(monthTx) { monthTx.filter { it.type != TRANSFER }.groupBy { it.localDate } }
-    val offset = ym.atDay(1).dayOfWeek.value - 1
+    val offset = ym.atDay(1).dayOfWeek.value - 1          // จันทร์ = 0
     val days = ym.lengthOfMonth()
+    val prevDays = ym.minusMonths(1).lengthOfMonth()
     val rows = (offset + days + 6) / 7
     val today = LocalDate.now()
     Row(Modifier.fillMaxWidth()) {
@@ -164,22 +183,40 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
         Row(Modifier.fillMaxWidth()) {
             for (c in 0 until 7) {
                 val d = r * 7 + c - offset + 1
-                if (d < 1 || d > days) { Spacer(Modifier.weight(1f).height(62.dp)); continue }
+                if (d < 1 || d > days) {
+                    // วันของเดือนก่อน/หลัง แสดงเป็นสีจาง
+                    val n = if (d < 1) prevDays + d else d - days
+                    Column(Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(10.dp))
+                        .background(Cream.copy(alpha = 0.35f)).padding(horizontal = 3.dp, vertical = 2.dp),
+                        horizontalAlignment = Alignment.End) {
+                        Text("$n", fontSize = 11.sp, color = Ink.copy(alpha = 0.25f))
+                    }
+                    continue
+                }
                 val date = ym.atDay(d)
                 val list = byDay[date].orEmpty()
                 val inc = sumOf(list, INCOME)
                 val exp = sumOf(list, EXPENSE)
                 val isSel = date == selected
+                val isToday = date == today
                 Column(
-                    Modifier.weight(1f).height(62.dp).padding(1.5.dp).clip(RoundedCornerShape(10.dp))
+                    Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(10.dp))
                         .background(if (isSel) Yellow else Cream.copy(alpha = 0.7f))
-                        .then(if (date == today) Modifier.border(1.5.dp, Orange, RoundedCornerShape(10.dp)) else Modifier)
-                        .clickable { onSelect(date) }.padding(2.dp),
+                        .clickable { onSelect(date) }.padding(horizontal = 1.dp, vertical = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("$d", fontSize = 11.sp, color = Ink.copy(alpha = 0.6f))
-                    if (exp > 0) Text(compactMoney(exp), fontSize = 11.sp, color = ExpenseRed, fontWeight = FontWeight.Bold, maxLines = 1)
-                    if (inc > 0) Text(compactMoney(inc), fontSize = 11.sp, color = IncomeGreen, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (isToday) Box(Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFE5B400)))
+                        Spacer(Modifier.weight(1f))
+                        Text("$d", fontSize = 11.sp, color = Ink.copy(alpha = if (isToday) 0.9f else 0.55f),
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    // วันที่มีรายการ: แสดงทั้งรายจ่าย (แดง) และรายรับ (เขียว) ฝั่งที่เป็น 0 จะจางลง
+                    if (list.isNotEmpty()) {
+                        DayAmount(exp, ExpenseRed)
+                        DayAmount(inc, IncomeGreen)
+                    }
                 }
             }
         }
