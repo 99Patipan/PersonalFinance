@@ -21,7 +21,14 @@ jobs:
           gradle-version: "8.9"
 
       - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+        run: |
+          # Maven Central บางครั้งตอบ 429 (Too Many Requests) จึงลองใหม่สูงสุด 3 ครั้ง
+          for i in 1 2 3; do
+            gradle assembleDebug --stacktrace && exit 0
+            echo "Build attempt $i failed, retrying in 30s..."
+            sleep 30
+          done
+          exit 1
 
       - name: Verify APK exists
         run: |
