@@ -141,7 +141,7 @@ fun TxnRow(t: Txn, cats: Map<String, Category>, wallets: Map<String, Wallet>, sh
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).pressClickable(onClick).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(46.dp).clip(CircleShape).background(circle), contentAlignment = Alignment.Center) {
-            Text(emoji, fontSize = 22.sp)
+            CategoryIcon(emoji, 28.dp, 22.sp)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -288,7 +288,7 @@ fun BudgetBar(name: String, used: Long, limit: Long, warnPercent: Int, emoji: St
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         if (emoji != null) {
             Box(Modifier.size(46.dp).clip(CircleShape).background(Mint), contentAlignment = Alignment.Center) {
-                Text(emoji, fontSize = 22.sp)
+                CategoryIcon(emoji, 28.dp, 22.sp)
             }
             Spacer(Modifier.width(12.dp))
         }

@@ -28,6 +28,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.animation.core.animateIntOffsetAsState
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlin.math.roundToInt
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.Dispatchers
@@ -59,31 +66,89 @@ private fun TypeSwitch(type: String, onChange: (String) -> Unit) {
     }
 }
 
-/** ตารางเลือกหมวดหมู่ เรียงเป็นแถวหน้ากระดาน แถวละ 4 ช่อง */
+/**
+ * ตารางเลือกหมวดหมู่ แถวละ 4 ช่อง แตะเพื่อเลือก กดค้างแล้วลากเพื่อจัดลำดับ
+ * ลำดับที่จัดจะถูกบันทึกขึ้น Supabase และใช้ทุกหน้า
+ */
 @Composable
-private fun CategoryGrid(cats: List<Category>, selectedId: String?, onSelect: (String) -> Unit) {
+private fun CategoryGrid(cats: List<Category>, selectedId: String?, onReorder: (List<String>) -> Unit, onSelect: (String) -> Unit) {
     if (cats.isEmpty()) { EmptyHint("ยังไม่มีหมวดหมู่ พิมพ์ชื่อหมวดใหม่ด้านล่างได้เลย"); return }
     val perRow = 4
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        cats.chunked(perRow).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { c ->
+    val gap = 8.dp
+    val cellH = 82.dp
+    val density = LocalDensity.current
+    val haptic = LocalHapticFeedback.current
+    val byId = remember(cats) { cats.associateBy { it.id } }
+    var order by remember { mutableStateOf(cats.map { it.id }) }
+    var dragId by remember { mutableStateOf<String?>(null) }
+    var dragPos by remember { mutableStateOf(Offset.Zero) }
+    // ข้อมูลจริงเปลี่ยน (เช่น เพิ่ม/ลบหมวด สลับรายรับ-รายจ่าย) และไม่ได้กำลังลากอยู่ ให้ซิงก์ลำดับตาม
+    LaunchedEffect(cats) { if (dragId == null) order = cats.map { it.id } }
+
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val cellW = (maxWidth - gap * (perRow - 1)) / perRow
+        val cellWpx = with(density) { cellW.toPx() }
+        val cellHpx = with(density) { cellH.toPx() }
+        val gapPx = with(density) { gap.toPx() }
+        val rows = (order.size + perRow - 1) / perRow
+        fun slot(index: Int) = Offset((index % perRow) * (cellWpx + gapPx), (index / perRow) * (cellHpx + gapPx))
+
+        Box(Modifier.fillMaxWidth().height(cellH * rows + gap * (rows - 1))) {
+            order.forEachIndexed { index, id ->
+                key(id) {
+                    val c = byId[id] ?: return@key
                     val sel = c.id == selectedId
-                    Column(Modifier.weight(1f).height(82.dp).clip(RoundedCornerShape(16.dp))
+                    val dragging = dragId == id
+                    val s = slot(index)
+                    val animated by animateIntOffsetAsState(IntOffset(s.x.roundToInt(), s.y.roundToInt()), tween(180), label = "slot")
+                    val pos = if (dragging) IntOffset(dragPos.x.roundToInt(), dragPos.y.roundToInt()) else animated
+                    Column(Modifier
+                        .offset { pos }
+                        .size(cellW, cellH)
+                        .zIndex(if (dragging) 1f else 0f)
+                        .graphicsLayer { scaleX = if (dragging) 1.08f else 1f; scaleY = if (dragging) 1.08f else 1f; alpha = if (dragging) 0.92f else 1f }
+                        .clip(RoundedCornerShape(16.dp))
                         .background(if (sel) Mint else Cream)
                         .border(if (sel) 2.dp else 1.dp, if (sel) Moss else Ink.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                        .pointerInput(id) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = {
+                                    dragId = id
+                                    dragPos = slot(order.indexOf(id))
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                onDrag = { change, amount ->
+                                    change.consume()
+                                    dragPos += amount
+                                    val cx = dragPos.x + cellWpx / 2
+                                    val cy = dragPos.y + cellHpx / 2
+                                    val col = (cx / (cellWpx + gapPx)).toInt().coerceIn(0, perRow - 1)
+                                    val row = (cy / (cellHpx + gapPx)).toInt().coerceIn(0, rows - 1)
+                                    val target = (row * perRow + col).coerceAtMost(order.lastIndex)
+                                    val cur = order.indexOf(id)
+                                    if (cur >= 0 && target != cur) {
+                                        order = order.toMutableList().also { it.add(target, it.removeAt(cur)) }
+                                    }
+                                },
+                                onDragEnd = {
+                                    dragId = null
+                                    if (order != cats.map { it.id }) onReorder(order)
+                                },
+                                onDragCancel = { dragId = null; order = cats.map { it.id } }
+                            )
+                        }
                         .clickable { onSelect(c.id) }.padding(horizontal = 4.dp, vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Text(c.emoji, fontSize = 24.sp)
+                        CategoryIcon(c.emoji, 32.dp, 24.sp)
                         Spacer(Modifier.height(4.dp))
                         Text(c.name, fontSize = 12.sp, maxLines = 2, textAlign = TextAlign.Center, lineHeight = 14.sp,
                             fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal, color = Ink)
                     }
                 }
-                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
+    Text("กดค้างที่หมวดหมู่แล้วลากเพื่อจัดลำดับ", fontSize = 11.5.sp, color = InkSoft, modifier = Modifier.padding(start = 2.dp, top = 6.dp))
 }
 
 @Composable
@@ -136,7 +201,7 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 // ถ้าพิมพ์หมวดเอง ให้ใช้ชื่อที่พิมพ์ (สร้างหมวดใหม่อัตโนมัติถ้ายังไม่มี)
                 val finalCat: String? = when {
                     type == TRANSFER -> null
-                    typed.isNotEmpty() -> vm.repo.findOrCreateCategory(typed, type, if (type == INCOME) "💰" else "🏷️")
+                    typed.isNotEmpty() -> vm.repo.findOrCreateCategory(typed, type, if (type == INCOME) IconStore.defaultIncome else IconStore.defaultExpense)
                     else -> catId
                 }
                 val ok = vm.saveTxn(Txn(
@@ -194,7 +259,7 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 Spacer(Modifier.height(10.dp))
                 if (type != TRANSFER) {
                     Text("หมวดหมู่", fontSize = 13.sp, color = InkSoft, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
-                    CategoryGrid(typeCats, catId) { catId = it; customCat = ""; error = null }
+                    CategoryGrid(typeCats, catId, onReorder = { vm.reorderCategories(it) }) { catId = it; customCat = ""; error = null }
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(customCat, { customCat = it; if (it.isNotBlank()) catId = null; error = null },
                         label = { Text(if (type == INCOME) "หรือพิมพ์ชื่อหมวดรายรับเอง" else "หรือพิมพ์ว่าจ่ายค่าอะไร (หมวดใหม่)") },

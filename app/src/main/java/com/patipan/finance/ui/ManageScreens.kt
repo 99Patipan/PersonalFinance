@@ -221,7 +221,7 @@ fun CategoriesScreen(vm: FinanceVM, onBack: () -> Unit) {
                 SoftCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(44.dp).clip(CircleShape).background(if (type == EXPENSE) Pink else Mint), contentAlignment = Alignment.Center) {
-                            Text(c.emoji, fontSize = 22.sp)
+                            CategoryIcon(c.emoji, 30.dp, 22.sp)
                         }
                         Spacer(Modifier.width(12.dp))
                         Text(c.name, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.Medium)
@@ -237,28 +237,55 @@ fun CategoriesScreen(vm: FinanceVM, onBack: () -> Unit) {
 
 @Composable
 private fun CategoryDialog(c: Category?, type: String, onSave: (Category) -> Unit, onDismiss: () -> Unit) {
+    val ctx = LocalContext.current
     var name by remember { mutableStateOf(c?.name ?: "") }
-    var emoji by remember { mutableStateOf(c?.emoji ?: emojiGroups[0].second[0]) }
+    val firstIcon = if ((c?.type ?: type) == INCOME) IconStore.defaultIncome else IconStore.defaultExpense
+    var icon by remember { mutableStateOf(c?.emoji?.takeIf { it.isNotBlank() } ?: firstIcon) }
+    // แท็บ: "emoji" = อีโมจิ, นอกนั้นคือคีย์กลุ่มไอคอน (ตรงกับโฟลเดอร์ในไฟล์ icon)
+    var tab by remember { mutableStateOf(if (IconStore.isIcon(icon)) IconStore.groupOf(icon) ?: "base" else "emoji") }
     AlertDialog(onDismissRequest = onDismiss, shape = RoundedCornerShape(28.dp), containerColor = Color.White,
         title = { Text(if (c == null) "เพิ่มหมวดหมู่" else "แก้ไขหมวดหมู่", fontWeight = FontWeight.Bold) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(56.dp).clip(CircleShape).background(Mint), contentAlignment = Alignment.Center) { Text(emoji, fontSize = 28.sp) }
+                    Box(Modifier.size(56.dp).clip(CircleShape).background(Mint), contentAlignment = Alignment.Center) {
+                        CategoryIcon(icon, 38.dp, 28.sp)
+                    }
                     Spacer(Modifier.width(12.dp))
                     OutlinedTextField(name, { name = it }, label = { Text("ชื่อหมวดหมู่") }, singleLine = true, shape = RoundedCornerShape(16.dp))
                 }
-                OutlinedTextField(emoji, { v -> emoji = firstSymbol(v).ifEmpty { "🏷️" } },
-                    label = { Text("พิมพ์อีโมจิเองก็ได้") }, singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
-                emojiGroups.forEach { (title, list) ->
-                    Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = InkSoft, modifier = Modifier.padding(top = 6.dp))
-                    list.chunked(6).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            row.forEach { e ->
-                                Box(Modifier.size(40.dp).clip(CircleShape)
-                                    .background(if (e == emoji) Mint else Cream)
-                                    .border(if (e == emoji) 2.dp else 0.dp, Moss, CircleShape).clickable { emoji = e },
-                                    contentAlignment = Alignment.Center) { Text(e, fontSize = 20.sp) }
+                Text("เลือกไอคอน", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = InkSoft, modifier = Modifier.padding(top = 4.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    IconStore.groups.forEach { g -> Pill(g.title, tab == g.key) { tab = g.key } }
+                    Pill("อีโมจิ", tab == "emoji") { tab = "emoji" }
+                }
+                if (tab == "emoji") {
+                    OutlinedTextField(iconText(icon), { v -> icon = firstSymbol(v).ifEmpty { "🏷️" } },
+                        label = { Text("พิมพ์อีโมจิเองก็ได้") }, singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
+                    emojiGroups.forEach { (title, list) ->
+                        Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = InkSoft, modifier = Modifier.padding(top = 6.dp))
+                        list.chunked(6).forEach { row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                row.forEach { e ->
+                                    Box(Modifier.size(40.dp).clip(CircleShape)
+                                        .background(if (e == icon) Mint else Cream)
+                                        .border(if (e == icon) 2.dp else 0.dp, Moss, CircleShape).clickable { icon = e },
+                                        contentAlignment = Alignment.Center) { Text(e, fontSize = 20.sp) }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    val names = remember(tab) { IconStore.names(ctx, tab) }
+                    names.chunked(5).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            row.forEach { n ->
+                                val r = IconStore.ref(tab, n)
+                                val sel = r == icon
+                                Box(Modifier.size(48.dp).clip(CircleShape)
+                                    .background(if (sel) Mint else Cream)
+                                    .border(if (sel) 2.dp else 0.dp, Moss, CircleShape).clickable { icon = r },
+                                    contentAlignment = Alignment.Center) { CategoryIcon(r, 34.dp) }
                             }
                         }
                     }
@@ -267,7 +294,7 @@ private fun CategoryDialog(c: Category?, type: String, onSave: (Category) -> Uni
         },
         confirmButton = {
             TextButton(onClick = {
-                if (name.isNotBlank()) onSave(Category(c?.id ?: "", name.trim(), c?.type ?: type, emoji))
+                if (name.isNotBlank()) onSave(Category(c?.id ?: "", name.trim(), c?.type ?: type, icon, c?.sortOrder ?: 0))
             }) { Text("บันทึก", fontWeight = FontWeight.Bold) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("ยกเลิก") } })
@@ -286,7 +313,7 @@ fun BudgetsScreen(vm: FinanceVM, onBack: () -> Unit) {
 
     edit?.let { c ->
         var text by remember(c.id) { mutableStateOf(bMap[c.id]?.let { plain(it.limitCents) } ?: "") }
-        AlertDialog(onDismissRequest = { edit = null }, title = { Text("งบ ${c.emoji} ${c.name} ต่อเดือน") },
+        AlertDialog(onDismissRequest = { edit = null }, title = { Text("งบ ${c.label()} ต่อเดือน") },
             text = {
                 OutlinedTextField(text, { text = filterAmount(it) }, label = { Text("งบประมาณ (บาท)") }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
@@ -313,12 +340,14 @@ fun BudgetsScreen(vm: FinanceVM, onBack: () -> Unit) {
                 SoftCard(Modifier.clickable { edit = c }) {
                     if (b == null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${c.emoji} ${c.name}", Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                            CategoryIcon(c.emoji, 30.dp, 22.sp)
+                            Spacer(Modifier.width(10.dp))
+                            Text(c.name, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.Medium)
                             Text("ยังไม่ตั้งงบ", color = InkSoft, fontSize = 13.sp)
                         }
                     } else {
                         val used = monthTx.filter { it.type == EXPENSE && it.categoryId == c.id }.sumOf { it.amountCents }
-                        BudgetBar("${c.emoji} ${c.name}", used, b.limitCents, warn)
+                        BudgetBar(c.name, used, b.limitCents, warn, emoji = c.emoji)
                     }
                 }
             }

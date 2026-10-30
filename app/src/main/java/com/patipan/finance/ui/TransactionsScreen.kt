@@ -68,7 +68,7 @@ fun TransactionsScreen(vm: FinanceVM, onOpen: (Txn) -> Unit) {
                 }
                 Spacer(Modifier.height(8.dp))
                 Picker("หมวดหมู่", catF?.let { catName(catMap[it]) } ?: "ทุกหมวดหมู่",
-                    listOf("ทุกหมวดหมู่") + cats.map { "${it.emoji} ${it.name} (${if (it.type == INCOME) "รับ" else "จ่าย"})" }) {
+                    listOf("ทุกหมวดหมู่") + cats.map { "${it.label()} (${if (it.type == INCOME) "รับ" else "จ่าย"})" }) {
                     catF = if (it == 0) null else cats[it - 1].id
                 }
                 Spacer(Modifier.height(8.dp))

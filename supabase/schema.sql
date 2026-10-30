@@ -14,6 +14,7 @@ create table public.categories (
   name text not null,
   type text not null check (type in ('INCOME','EXPENSE')),
   emoji text not null default '',
+  sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
 

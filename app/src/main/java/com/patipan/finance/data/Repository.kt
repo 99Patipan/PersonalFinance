@@ -50,7 +50,7 @@ class Repository(private val api: SupabaseApi, private val ctx: Context) {
 
     // ---------- โหลดข้อมูล (blocking: เรียกบน IO เท่านั้น) ----------
     private fun fetchWallets() = api.select("wallets", "order=created_at,id").objs().map { it.toWallet() }
-    private fun fetchCategories() = api.select("categories", "order=created_at,id").objs().map { it.toCategory() }
+    private fun fetchCategories() = api.select("categories", "order=sort_order,created_at,id").objs().map { it.toCategory() }
     private fun fetchTxns() = api.select("transactions", "order=timestamp_ms.desc,id.desc").objs().map { it.toTxn() }
     private fun fetchBudgets() = api.select("budgets", "order=category_id").objs().map { it.toBudget() }
 
@@ -124,9 +124,33 @@ class Repository(private val api: SupabaseApi, private val ctx: Context) {
     // ---------- หมวดหมู่ ----------
     suspend fun saveCategory(c: Category) {
         withContext<Unit>(Dispatchers.IO) {
-            val saved = c.copy(id = c.id.ifEmpty { newId() })
+            val saved = if (c.id.isEmpty()) c.copy(id = newId(), sortOrder = nextCategoryOrder(c.type)) else c
             api.upsert("categories", JSONArray().put(saved.toJson(userId())), returning = false)
             _categories.value = fetchCategories()
+        }
+    }
+
+    /** ลำดับของหมวดใหม่ = ต่อท้ายหมวดประเภทเดียวกัน */
+    private fun nextCategoryOrder(type: String): Int =
+        (_categories.value.filter { it.type == type }.maxOfOrNull { it.sortOrder } ?: -1) + 1
+
+    /** จัดลำดับหมวดหมู่ใหม่ตามรายการ id (เรียงจากบนลงล่าง) อัปเดตในเครื่องทันที แล้วบันทึกขึ้นเซิร์ฟเวอร์ */
+    suspend fun reorderCategories(ids: List<String>) {
+        withContext<Unit>(Dispatchers.IO) {
+            val before = _categories.value
+            val byId = before.associateBy { it.id }
+            val changed = ids.mapIndexedNotNull { i, id -> byId[id]?.takeIf { it.sortOrder != i }?.copy(sortOrder = i) }
+            if (changed.isEmpty()) return@withContext
+            val changedMap = changed.associateBy { it.id }
+            _categories.value = before.map { changedMap[it.id] ?: it }.sortedBy { it.sortOrder }
+            try {
+                val rows = JSONArray()
+                changed.forEach { rows.put(it.toJson(userId())) }
+                api.upsert("categories", rows, returning = false)
+            } catch (e: Exception) {
+                runCatching { _categories.value = fetchCategories() }
+                throw e
+            }
         }
     }
 
@@ -137,7 +161,7 @@ class Repository(private val api: SupabaseApi, private val ctx: Context) {
         if (hit != null) {
             hit.id
         } else {
-            val c = Category(newId(), n, type, emoji)
+            val c = Category(newId(), n, type, emoji, nextCategoryOrder(type))
             api.upsert("categories", JSONArray().put(c.toJson(userId())), returning = false)
             _categories.value = fetchCategories()
             c.id
@@ -268,7 +292,7 @@ class Repository(private val api: SupabaseApi, private val ctx: Context) {
             })
             root.put("categories", JSONArray().also { a ->
                 _categories.value.forEach {
-                    a.put(JSONObject().put("id", it.id).put("name", it.name).put("type", it.type).put("emoji", it.emoji))
+                    a.put(JSONObject().put("id", it.id).put("name", it.name).put("type", it.type).put("emoji", it.emoji).put("sortOrder", it.sortOrder))
                 }
             })
             root.put("budgets", JSONArray().also { a ->
@@ -324,9 +348,9 @@ class Repository(private val api: SupabaseApi, private val ctx: Context) {
                 Wallet(nid, o.getString("name"), o.getLong("color"), o.getLong("initialCents"))
             }
             require(wallets.isNotEmpty()) { "ไฟล์สำรองไม่มีกระเป๋าเงิน" }
-            val cats = root.getJSONArray("categories").objs().map { o ->
+            val cats = root.getJSONArray("categories").objs().mapIndexed { idx, o ->
                 val nid = newId(); cIds[o.get("id").toString()] = nid
-                Category(nid, o.getString("name"), o.getString("type"), o.optString("emoji", ""))
+                Category(nid, o.getString("name"), o.getString("type"), o.optString("emoji", ""), idx)
             }
             val budgets = root.getJSONArray("budgets").objs().mapNotNull { o ->
                 val cid = cIds[o.get("categoryId").toString()]

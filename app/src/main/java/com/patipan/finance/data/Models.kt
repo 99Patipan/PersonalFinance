@@ -18,7 +18,10 @@ data class Category(
     val id: String = "",
     val name: String,
     val type: String,
-    val emoji: String
+    /** อีโมจิ หรือ "icon:<กลุ่ม>/<ชื่อ>" สำหรับไอคอนรูปภาพ */
+    val emoji: String,
+    /** ลำดับที่แสดง (น้อยไปมาก) */
+    val sortOrder: Int = 0
 )
 
 data class Txn(
@@ -51,9 +54,9 @@ fun Wallet.toJson(userId: String): JSONObject = JSONObject()
 fun JSONObject.toWallet() = Wallet(getString("id"), getString("name"), getLong("color"), getLong("initial_cents"))
 
 fun Category.toJson(userId: String): JSONObject = JSONObject()
-    .put("id", id).put("user_id", userId).put("name", name).put("type", type).put("emoji", emoji)
+    .put("id", id).put("user_id", userId).put("name", name).put("type", type).put("emoji", emoji).put("sort_order", sortOrder)
 
-fun JSONObject.toCategory() = Category(getString("id"), getString("name"), getString("type"), optString("emoji", ""))
+fun JSONObject.toCategory() = Category(getString("id"), getString("name"), getString("type"), optString("emoji", ""), optInt("sort_order", 0))
 
 fun Budget.toJson(userId: String): JSONObject = JSONObject()
     .put("user_id", userId).put("category_id", categoryId).put("limit_cents", limitCents)

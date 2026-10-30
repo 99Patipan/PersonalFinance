@@ -82,4 +82,7 @@ fun expenseByCat(list: List<Txn>): List<Pair<String?, Long>> =
     list.filter { it.type == EXPENSE }.groupBy { it.categoryId }
         .map { it.key to it.value.sumOf { x -> x.amountCents } }.sortedByDescending { it.second }
 
-fun catName(c: Category?) = if (c == null) "ไม่ระบุหมวด" else "${c.emoji} ${c.name}"
+/** ชื่อหมวดพร้อมอีโมจิ (ถ้าใช้ไอคอนรูปภาพจะแสดงเฉพาะชื่อ) */
+fun Category.label() = "${iconText(emoji)} $name".trim()
+
+fun catName(c: Category?) = if (c == null) "ไม่ระบุหมวด" else c.label()
