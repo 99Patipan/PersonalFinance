@@ -96,7 +96,8 @@ private fun CategoryGrid(cats: List<Category>, selectedId: String?, onReorder: (
         Box(Modifier.fillMaxWidth().height(cellH * rows + gap * (rows - 1))) {
             order.forEachIndexed { index, id ->
                 key(id) {
-                    val c = byId[id] ?: return@key
+                    val c = byId[id]
+                    if (c != null) {
                     val sel = c.id == selectedId
                     val dragging = dragId == id
                     val s = slot(index)
@@ -143,6 +144,7 @@ private fun CategoryGrid(cats: List<Category>, selectedId: String?, onReorder: (
                         Spacer(Modifier.height(4.dp))
                         Text(c.name, fontSize = 12.sp, maxLines = 2, textAlign = TextAlign.Center, lineHeight = 14.sp,
                             fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal, color = Ink)
+                    }
                     }
                 }
             }
