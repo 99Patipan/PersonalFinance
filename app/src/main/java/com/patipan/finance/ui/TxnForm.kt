@@ -165,7 +165,10 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
     var amount by remember { mutableStateOf(init?.let { plain(it.amountCents) } ?: "") }
     var catId by remember { mutableStateOf(init?.categoryId) }
     var customCat by remember { mutableStateOf("") }
-    var walletId by remember { mutableStateOf(init?.walletId ?: wallets.firstOrNull()?.id) }
+    // ค่าเริ่มต้น = กระเป๋าที่เลือกไว้ครั้งล่าสุด (ถ้ายังมีอยู่) ไม่งั้นใช้ใบแรก
+    var walletId by remember {
+        mutableStateOf(init?.walletId ?: vm.lastWalletId()?.takeIf { id -> wallets.any { it.id == id } } ?: wallets.firstOrNull()?.id)
+    }
     var toId by remember { mutableStateOf(init?.toWalletId) }
     var dt by remember { mutableStateOf(init?.ldt ?: LocalDateTime.now().withSecond(0).withNano(0)) }
     var detail by remember { mutableStateOf(init?.detail ?: "") }
@@ -212,7 +215,7 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                     walletId = walletId!!, toWalletId = if (type == TRANSFER) toId else null,
                     timestamp = dt.toMillis(), detail = detail.trim(), note = note.trim(), receiptPath = receipt
                 ))
-                if (ok) onClose() else saving = false
+                if (ok) { if (init == null) walletId?.let { vm.rememberWallet(it) }; onClose() } else saving = false
             } catch (e: Exception) {
                 error = friendlyError(e)
                 saving = false
@@ -273,7 +276,7 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 }
                 Picker(if (type == TRANSFER) "จากกระเป๋า" else "กระเป๋าเงิน",
                     wallets.firstOrNull { it.id == walletId }?.name ?: "เลือกกระเป๋า", wallets.map { it.name }) {
-                    walletId = wallets[it].id; error = null
+                    walletId = wallets[it].id; vm.rememberWallet(wallets[it].id); error = null
                 }
                 if (type == TRANSFER) {
                     Spacer(Modifier.height(10.dp))

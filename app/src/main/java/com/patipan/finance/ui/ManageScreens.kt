@@ -104,7 +104,7 @@ fun WalletsScreen(vm: FinanceVM, onBack: () -> Unit, onTransfer: () -> Unit) {
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
-                val total = wallets.sumOf { walletBalance(it, txns) }
+                val total = totalBalance(wallets, txns)
                 Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = Forest) {
                     Box(Modifier.background(Brush.linearGradient(listOf(Forest, ForestLight))).padding(22.dp)) {
                         Column(Modifier.align(Alignment.CenterStart)) {
@@ -113,7 +113,7 @@ fun WalletsScreen(vm: FinanceVM, onBack: () -> Unit, onTransfer: () -> Unit) {
                             Text("${money(total)} บาท", style = Num, color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
                             Spacer(Modifier.height(6.dp))
                             Box(Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.22f)).padding(horizontal = 10.dp, vertical = 3.dp)) {
-                                Text("${wallets.size} กระเป๋า", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                Text(wallets.count { !it.includeInTotal }.let { if (it == 0) "${wallets.size} กระเป๋า" else "${wallets.size - it} กระเป๋า (ไม่รวม $it)" }, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             }
                         }
                         LineIcon(Glyph.Wallet, Color.White.copy(alpha = 0.3f), Modifier.size(76.dp).align(Alignment.CenterEnd))
@@ -143,7 +143,7 @@ fun WalletsScreen(vm: FinanceVM, onBack: () -> Unit, onTransfer: () -> Unit) {
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(w.name, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1)
-                                Text("เริ่มต้น ${money(w.initialCents)} บาท", fontSize = 12.sp, color = InkSoft)
+                                Text("เริ่มต้น ${money(w.initialCents)} บาท" + if (w.includeInTotal) "" else " · ไม่รวมในยอดรวม", fontSize = 12.sp, color = InkSoft)
                                 Spacer(Modifier.height(2.dp))
                                 Text("${money(bal)} บาท", style = Num, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp,
                                     color = if (bal < 0) ExpenseText else Moss)
@@ -165,6 +165,7 @@ private fun WalletDialog(w: Wallet?, onSave: (Wallet) -> Unit, onDismiss: () -> 
     var name by remember { mutableStateOf(w?.name ?: "") }
     var color by remember { mutableStateOf(w?.color ?: walletColors[0]) }
     var init by remember { mutableStateOf(w?.let { plain(it.initialCents) } ?: "0") }
+    var include by remember { mutableStateOf(w?.includeInTotal ?: true) }
     AlertDialog(onDismissRequest = onDismiss, shape = RoundedCornerShape(28.dp), containerColor = Color.White,
         title = { Text(if (w == null) "เพิ่มกระเป๋า" else "แก้ไขกระเป๋า", fontWeight = FontWeight.Bold) },
         text = {
@@ -185,12 +186,19 @@ private fun WalletDialog(w: Wallet?, onSave: (Wallet) -> Unit, onDismiss: () -> 
                 }
                 OutlinedTextField(init, { init = filterAmount(it) }, label = { Text("ยอดเงินเริ่มต้น (บาท)") }, singleLine = true,
                     shape = RoundedCornerShape(16.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("นับรวมในยอดเงินคงเหลือรวม", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        Text(if (include) "ยอดกระเป๋านี้รวมอยู่ในยอดรวม" else "ไม่รวมยอดกระเป๋านี้ในยอดรวม", fontSize = 12.sp, color = InkSoft)
+                    }
+                    Switch(include, { include = it })
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 val cents = parseCents(init.ifBlank { "0" })
-                if (name.isNotBlank() && cents != null) onSave(Wallet(w?.id ?: "", name.trim(), color, cents))
+                if (name.isNotBlank() && cents != null) onSave(Wallet(w?.id ?: "", name.trim(), color, cents, include))
             }) { Text("บันทึก", fontWeight = FontWeight.Bold) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("ยกเลิก") } })

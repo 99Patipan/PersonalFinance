@@ -5,6 +5,7 @@ create table public.wallets (
   name text not null,
   color bigint not null,
   initial_cents bigint not null default 0,
+  include_in_total boolean not null default true,
   created_at timestamptz not null default now()
 );
 

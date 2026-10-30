@@ -40,7 +40,7 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
     val monthTx = remember(txns, ym) { inMonth(txns, ym) }
     val income = sumOf(monthTx, INCOME)
     val expense = sumOf(monthTx, EXPENSE)
-    val total = wallets.sumOf { walletBalance(it, txns) }
+    val total = totalBalance(wallets, txns)
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         // 1) ยอดรวม + กระเป๋า — ตัวเลขใหญ่คือพระเอกของหน้า ไล่ขึ้นครั้งแรกที่เปิดแอป
@@ -61,18 +61,19 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
                             withStyle(SpanStyle(fontSize = 40.sp, fontWeight = FontWeight.ExtraBold)) { append(money(shown)) }
                             withStyle(SpanStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold)) { append("  บาท") }
                         }, style = Num, maxLines = 1, color = if (total < 0) Color(0xFFFFD9C7) else Color.White)
-                        Text("จาก ${wallets.size} กระเป๋า", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
+                        val skipped = wallets.count { !it.includeInTotal }
+                        Text(if (skipped == 0) "จาก ${wallets.size} กระเป๋า" else "จาก ${wallets.size - skipped} กระเป๋า (ไม่รวม $skipped)", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
                         Spacer(Modifier.height(16.dp))
                         wallets.chunked(2).forEach { row ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { w ->
                                     Row(Modifier.weight(1f).clip(RoundedCornerShape(18.dp))
-                                        .background(Color.White.copy(alpha = 0.16f)).padding(horizontal = 12.dp, vertical = 10.dp),
+                                        .background(Color.White.copy(alpha = if (w.includeInTotal) 0.16f else 0.07f)).padding(horizontal = 12.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically) {
                                         Box(Modifier.size(10.dp).background(Color(w.color), CircleShape))
                                         Spacer(Modifier.width(8.dp))
                                         Column {
-                                            Text(w.name, fontSize = 13.sp, color = Color.White.copy(alpha = 0.92f), maxLines = 1)
+                                            Text(if (w.includeInTotal) w.name else "${w.name} · ไม่รวม", fontSize = 13.sp, color = Color.White.copy(alpha = if (w.includeInTotal) 0.92f else 0.65f), maxLines = 1)
                                             Text(money(walletBalance(w, txns)), style = Num, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
                                         }
                                     }

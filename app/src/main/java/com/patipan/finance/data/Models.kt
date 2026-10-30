@@ -11,7 +11,9 @@ data class Wallet(
     val id: String = "",
     val name: String,
     val color: Long,
-    val initialCents: Long
+    val initialCents: Long,
+    /** true = นับยอดกระเป๋านี้รวมใน "ยอดเงินคงเหลือรวม" */
+    val includeInTotal: Boolean = true
 )
 
 data class Category(
@@ -49,9 +51,9 @@ private fun JSONObject.strOrNull(k: String): String? = if (isNull(k)) null else 
 
 fun Wallet.toJson(userId: String): JSONObject = JSONObject()
     .put("id", id).put("user_id", userId).put("name", name)
-    .put("color", color).put("initial_cents", initialCents)
+    .put("color", color).put("initial_cents", initialCents).put("include_in_total", includeInTotal)
 
-fun JSONObject.toWallet() = Wallet(getString("id"), getString("name"), getLong("color"), getLong("initial_cents"))
+fun JSONObject.toWallet() = Wallet(getString("id"), getString("name"), getLong("color"), getLong("initial_cents"), optBoolean("include_in_total", true))
 
 fun Category.toJson(userId: String): JSONObject = JSONObject()
     .put("id", id).put("user_id", userId).put("name", name).put("type", type).put("emoji", emoji).put("sort_order", sortOrder)

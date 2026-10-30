@@ -287,7 +287,7 @@ class Repository(private val api: SupabaseApi, private val ctx: Context) {
             root.put("wallets", JSONArray().also { a ->
                 _wallets.value.forEach {
                     a.put(JSONObject().put("id", it.id).put("name", it.name).put("color", it.color)
-                        .put("initialCents", it.initialCents))
+                        .put("initialCents", it.initialCents).put("includeInTotal", it.includeInTotal))
                 }
             })
             root.put("categories", JSONArray().also { a ->
@@ -345,7 +345,7 @@ class Repository(private val api: SupabaseApi, private val ctx: Context) {
             val cIds = HashMap<String, String>()
             val wallets = root.getJSONArray("wallets").objs().map { o ->
                 val nid = newId(); wIds[o.get("id").toString()] = nid
-                Wallet(nid, o.getString("name"), o.getLong("color"), o.getLong("initialCents"))
+                Wallet(nid, o.getString("name"), o.getLong("color"), o.getLong("initialCents"), o.optBoolean("includeInTotal", true))
             }
             require(wallets.isNotEmpty()) { "ไฟล์สำรองไม่มีกระเป๋าเงิน" }
             val cats = root.getJSONArray("categories").objs().mapIndexed { idx, o ->

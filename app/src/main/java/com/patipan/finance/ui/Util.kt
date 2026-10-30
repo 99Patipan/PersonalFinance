@@ -63,6 +63,10 @@ fun parseCents(s: String): Long? = runCatching {
     java.math.BigDecimal(s).setScale(2, java.math.RoundingMode.UNNECESSARY).movePointRight(2).toLong()
 }.getOrNull()
 
+/** ยอดเงินคงเหลือรวม: นับเฉพาะกระเป๋าที่เปิด "นับรวมในยอดรวม" */
+fun totalBalance(wallets: List<Wallet>, all: List<Txn>): Long =
+    wallets.filter { it.includeInTotal }.sumOf { walletBalance(it, all) }
+
 fun walletBalance(w: Wallet, all: List<Txn>): Long {
     var b = w.initialCents
     for (x in all) when (x.type) {

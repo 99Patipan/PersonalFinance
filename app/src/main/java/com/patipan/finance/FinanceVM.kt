@@ -135,6 +135,8 @@ class FinanceVM(private val app: Application) : AndroidViewModel(app) {
     fun reorderCategories(ids: List<String>) = act(null) { repo.reorderCategories(ids) }
     fun deleteCategory(c: Category) = act("ลบหมวดหมู่แล้ว") { repo.deleteCategory(c) }
     fun setBudget(catId: String, cents: Long) = act("บันทึกงบประมาณแล้ว") { repo.setBudget(catId, cents) }
+    fun lastWalletId(): String? = prefs.lastWalletId()
+    fun rememberWallet(id: String) = prefs.setLastWalletId(id)
     fun setWarn(v: Int) = viewModelScope.launch { prefs.setWarnPercent(v) }
 
     fun exportCsv(uri: Uri) = viewModelScope.launch(Dispatchers.IO) {
