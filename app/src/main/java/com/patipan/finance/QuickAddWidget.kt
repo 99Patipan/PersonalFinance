@@ -18,7 +18,10 @@ abstract class QuickAddWidget(
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         val views = RemoteViews(context.packageName, layoutRes)
-        views.setOnClickPendingIntent(R.id.widget_root, pending(context))
+        val click = pending(context)
+        views.setOnClickPendingIntent(R.id.widget_root, click)
+        views.setOnClickPendingIntent(R.id.widget_icon, click)
+        views.setOnClickPendingIntent(R.id.widget_label, click)
         for (id in ids) manager.updateAppWidget(id, views)
     }
 

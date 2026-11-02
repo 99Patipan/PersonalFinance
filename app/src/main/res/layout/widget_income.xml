@@ -9,12 +9,14 @@
     android:padding="4dp">
 
     <ImageView
+        android:id="@+id/widget_icon"
         android:layout_width="28dp"
         android:layout_height="28dp"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_widget_income" />
 
     <TextView
+        android:id="@+id/widget_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="1dp"

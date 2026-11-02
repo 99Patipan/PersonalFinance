@@ -83,7 +83,7 @@ private fun MainContent(vm: FinanceVM) {
             BottomBar(tab, onSelect = { tab = it; sub = null }, onAdd = { form = FormTarget(null, EXPENSE) })
         }
 
-        form?.let { FormHost(vm, it) { form = null } }
+        form?.let { f -> key(f.txn?.id, f.type) { FormHost(vm, f) { form = null } } }
 
         detail?.let { t ->
             val current = vm.txns.collectAsState().value.firstOrNull { it.id == t.id }
