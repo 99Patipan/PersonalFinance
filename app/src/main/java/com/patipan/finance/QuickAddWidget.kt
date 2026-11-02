@@ -29,7 +29,7 @@ abstract class QuickAddWidget(
         val intent = Intent(context, MainActivity::class.java).apply {
             action = "com.patipan.finance.QUICK_ADD_$type"   // action ต่างกัน เพื่อไม่ให้ PendingIntent ของสองวิดเจ็ตชนกัน
             putExtra(MainActivity.EXTRA_QUICK_ADD, type)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
