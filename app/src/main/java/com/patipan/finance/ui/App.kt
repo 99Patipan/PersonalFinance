@@ -52,13 +52,16 @@ private fun MainContent(vm: FinanceVM) {
     val wallets by vm.wallets.collectAsState()
 
     // เปิดจากวิดเจ็ต: เปิดฟอร์มเพิ่มรายการตามประเภทที่แตะ
+    // ใช้ทั้ง StateFlow และค่าที่ค้างใน Prefs (กัน extra หาย / activity ถูก recreate)
     val quickAdd by vm.quickAdd.collectAsState()
     LaunchedEffect(quickAdd) {
-        quickAdd?.let { type ->
-            detail = null; sub = null
+        val type = quickAdd ?: return@LaunchedEffect
+        if (type == EXPENSE || type == INCOME) {
+            detail = null
+            sub = null
             form = FormTarget(null, type)
-            vm.consumeQuickAdd()
         }
+        vm.consumeQuickAdd()
     }
 
     BackHandler(enabled = form != null) { form = null }

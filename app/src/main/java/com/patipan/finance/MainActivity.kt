@@ -34,7 +34,28 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleQuickAdd(intent: Intent?) {
-        val type = intent?.getStringExtra(EXTRA_QUICK_ADD) ?: return
+        if (intent == null) return
+        // 1) อ่านจาก extra ก่อน
+        var type = intent.getStringExtra(EXTRA_QUICK_ADD)
+        // 2) ถ้า extra หาย (พบบ่อยกับวิดเจ็ต + singleTop) ลองอ่านจาก action แทน
+        if (type.isNullOrBlank()) {
+            val action = intent.action.orEmpty()
+            type = when {
+                action.endsWith("_EXPENSE") -> EXPENSE
+                action.endsWith("_INCOME") -> INCOME
+                else -> null
+            }
+        }
+        // 3) ลองจาก data URI
+        if (type.isNullOrBlank()) {
+            val segment = intent.data?.lastPathSegment
+            type = when (segment) {
+                EXPENSE, "EXPENSE" -> EXPENSE
+                INCOME, "INCOME" -> INCOME
+                else -> null
+            }
+        }
+        if (type.isNullOrBlank()) return
         intent.removeExtra(EXTRA_QUICK_ADD)
         if (type == EXPENSE || type == INCOME) vm.requestQuickAdd(type)
     }

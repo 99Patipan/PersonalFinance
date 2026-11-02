@@ -18,4 +18,12 @@ class Prefs(private val ctx: Context) {
     /** กระเป๋าที่เลือกล่าสุดในหน้าเพิ่มรายการ (อ่านแบบ sync เพื่อใช้เป็นค่าเริ่มต้นของฟอร์มทันที) */
     fun lastWalletId(): String? = ui.getString("last_wallet_id", null)
     fun setLastWalletId(id: String) { ui.edit().putString("last_wallet_id", id).apply() }
+
+    /** คำขอเปิดฟอร์มจากวิดเจ็ต (เก็บ sync ไว้กัน extra หาย / process ถูก kill) */
+    fun pendingQuickAdd(): String? = ui.getString("pending_quick_add", null)
+    fun setPendingQuickAdd(type: String?) {
+        ui.edit().apply {
+            if (type == null) remove("pending_quick_add") else putString("pending_quick_add", type)
+        }.apply()
+    }
 }

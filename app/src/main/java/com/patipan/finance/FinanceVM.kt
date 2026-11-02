@@ -135,11 +135,18 @@ class FinanceVM(private val app: Application) : AndroidViewModel(app) {
     fun reorderCategories(ids: List<String>) = act(null) { repo.reorderCategories(ids) }
     fun deleteCategory(c: Category) = act("ลบหมวดหมู่แล้ว") { repo.deleteCategory(c) }
     fun setBudget(catId: String, cents: Long) = act("บันทึกงบประมาณแล้ว") { repo.setBudget(catId, cents) }
-    /** คำขอเปิดหน้าเพิ่มรายการจากวิดเจ็ต (EXPENSE/INCOME) รอจนล็อกอินและโหลดข้อมูลเสร็จ แล้วหน้าหลักจะรับไปเปิดฟอร์ม */
-    private val _quickAdd = MutableStateFlow<String?>(null)
+    /** คำขอเปิดหน้าเพิ่มรายการจากวิดเจ็ต (EXPENSE/INCOME) รอจนล็อกอินและโหลดข้อมูลเสร็จ แล้วหน้าหลักจะรับไปเปิดฟอร์ม
+     *  เก็บทั้ง StateFlow + Prefs เพื่อกัน extra หาย / process ถูก kill ก่อน MainContent ขึ้น */
+    private val _quickAdd = MutableStateFlow<String?>(prefs.pendingQuickAdd())
     val quickAdd = _quickAdd.asStateFlow()
-    fun requestQuickAdd(type: String) { _quickAdd.value = type }
-    fun consumeQuickAdd() { _quickAdd.value = null }
+    fun requestQuickAdd(type: String) {
+        prefs.setPendingQuickAdd(type)
+        _quickAdd.value = type
+    }
+    fun consumeQuickAdd() {
+        prefs.setPendingQuickAdd(null)
+        _quickAdd.value = null
+    }
 
     fun lastWalletId(): String? = prefs.lastWalletId()
     fun rememberWallet(id: String) = prefs.setLastWalletId(id)

@@ -27,11 +27,23 @@ abstract class QuickAddWidget(
 
     private fun pending(context: Context): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
-            action = "com.patipan.finance.QUICK_ADD_$type"   // action ต่างกัน เพื่อไม่ให้ PendingIntent ของสองวิดเจ็ตชนกัน
+            // action + data URI ต่างกัน → PendingIntent ไม่ชนกัน และลดโอกาส extra หาย
+            action = "com.patipan.finance.QUICK_ADD_$type"
+            data = android.net.Uri.parse("personalfinance://quickadd/$type")
             putExtra(MainActivity.EXTRA_QUICK_ADD, type)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            )
         }
-        return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        return PendingIntent.getActivity(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 }
 
