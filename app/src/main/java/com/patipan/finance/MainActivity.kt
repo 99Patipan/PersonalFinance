@@ -22,50 +22,52 @@ class MainActivity : ComponentActivity() {
             vm.msg.collect { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show() }
         }
         setContent { FinanceTheme { FinanceApp(vm) } }
-        // หลัง setContent แล้วค่อยดึงคำขอจากวิดเจ็ต (Prefs เป็นหลัก)
-        consumePendingQuickAdd(intent)
+        applyQuickAdd(intent, from = "onCreate")
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        consumePendingQuickAdd(intent)
+        applyQuickAdd(intent, from = "onNewIntent")
     }
 
     override fun onResume() {
         super.onResume()
-        // กันกรณี activity อยู่แล้ว แล้ว Prefs ถูกเขียนจาก Broadcast ก่อน onNewIntent
-        consumePendingQuickAdd(intent)
+        // อ่านซ้ำจาก Prefs เผื่อ Intent extra หาย แต่ Prefs ถูกเซ็ตไว้แล้ว
+        val pending = vm.peekPendingQuickAdd()
+        if (!pending.isNullOrBlank()) {
+            applyQuickAdd(null, from = "onResume/prefs")
+        }
     }
 
-    /**
-     * อ่านคำขอเปิดฟอร์มจาก:
-     * 1) Prefs (แหล่งหลัก จาก Broadcast ของวิดเจ็ต)
-     * 2) Intent extra / action (สำรอง)
-     */
-    private fun consumePendingQuickAdd(intent: Intent?) {
-        // 1) Prefs
-        var type = vm.peekPendingQuickAdd()
+    private fun applyQuickAdd(intent: Intent?, from: String) {
+        var type: String? = null
 
-        // 2) Intent extra
-        if (type.isNullOrBlank() && intent != null) {
-            type = intent.getStringExtra(EXTRA_QUICK_ADD)
+        // 1) deep link: personalfinance://quickadd/EXPENSE
+        val data = intent?.data
+        if (data != null && data.scheme == "personalfinance" && data.host == "quickadd") {
+            type = data.lastPathSegment
         }
-        // 3) action
-        if (type.isNullOrBlank() && intent != null) {
-            val action = intent.action.orEmpty()
-            type = when {
-                action.endsWith("_EXPENSE") || action.contains("EXPENSE") -> EXPENSE
-                action.endsWith("_INCOME") || action.contains("INCOME") -> INCOME
-                else -> null
-            }
+
+        // 2) extra
+        if (type.isNullOrBlank()) {
+            type = intent?.getStringExtra(EXTRA_QUICK_ADD)
+        }
+
+        // 3) Prefs (สำรอง)
+        if (type.isNullOrBlank()) {
+            type = vm.peekPendingQuickAdd()
         }
 
         if (type.isNullOrBlank()) return
-        if (type != EXPENSE && type != INCOME) return
+        val normalized = when (type.uppercase()) {
+            EXPENSE, "EXPENSE" -> EXPENSE
+            INCOME, "INCOME" -> INCOME
+            else -> return
+        }
 
         intent?.removeExtra(EXTRA_QUICK_ADD)
-        vm.requestQuickAdd(type)
+        vm.requestQuickAdd(normalized)
     }
 
     companion object {

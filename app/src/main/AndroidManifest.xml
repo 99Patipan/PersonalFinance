@@ -18,17 +18,23 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- deep link จากวิดเจ็ต: personalfinance://quickadd/EXPENSE|INCOME -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:scheme="personalfinance"
+                    android:host="quickadd" />
+            </intent-filter>
         </activity>
 
-        <!-- วิดเจ็ตปุ่มลัด 1 ช่อง: เพิ่มรายจ่าย / เพิ่มรายรับ
-             ต้องรับ ACTION_QUICK_ADD_CLICK ด้วย (กดวิดเจ็ต → บันทึก Prefs → เปิดแอป) -->
+        <!-- วิดเจ็ตปุ่มลัด 1 ช่อง: เพิ่มรายจ่าย / เพิ่มรายรับ -->
         <receiver
             android:name=".QuickAddExpenseWidget"
             android:label="@string/widget_name_expense"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.patipan.finance.ACTION_QUICK_ADD_CLICK" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -40,7 +46,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.patipan.finance.ACTION_QUICK_ADD_CLICK" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
