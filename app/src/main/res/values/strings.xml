@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">สมุดรายรับ-รายจ่าย</string>
-    <string name="widget_add_expense">+ รายจ่าย</string>
-    <string name="widget_add_income">+ รายรับ</string>
-    <string name="widget_desc">ปุ่มลัดเพิ่มรายจ่ายหรือรายรับ</string>
+    <string name="widget_label_expense">รายจ่าย</string>
+    <string name="widget_label_income">รายรับ</string>
+    <string name="widget_name_expense">เพิ่มรายจ่าย</string>
+    <string name="widget_name_income">เพิ่มรายรับ</string>
+    <string name="widget_desc_expense">ปุ่มลัดเพิ่มรายจ่าย</string>
+    <string name="widget_desc_income">ปุ่มลัดเพิ่มรายรับ</string>
 </resources>
