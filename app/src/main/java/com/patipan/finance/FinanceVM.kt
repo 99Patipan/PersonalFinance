@@ -139,8 +139,11 @@ class FinanceVM(private val app: Application) : AndroidViewModel(app) {
      *  เก็บทั้ง StateFlow + Prefs เพื่อกัน extra หาย / process ถูก kill ก่อน MainContent ขึ้น */
     private val _quickAdd = MutableStateFlow<String?>(prefs.pendingQuickAdd())
     val quickAdd = _quickAdd.asStateFlow()
+    fun peekPendingQuickAdd(): String? = prefs.pendingQuickAdd()
     fun requestQuickAdd(type: String) {
         prefs.setPendingQuickAdd(type)
+        // บังคับให้ StateFlow เปลี่ยนค่าเสมอ (กันกรณีกดวิดเจ็ตซ้ำประเภทเดิมแล้ว UI ไม่เปิดฟอร์ม)
+        if (_quickAdd.value == type) _quickAdd.value = null
         _quickAdd.value = type
     }
     fun consumeQuickAdd() {

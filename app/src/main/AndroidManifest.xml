@@ -20,13 +20,15 @@
             </intent-filter>
         </activity>
 
-        <!-- วิดเจ็ตปุ่มลัด 1 ช่อง: เพิ่มรายจ่าย / เพิ่มรายรับ -->
+        <!-- วิดเจ็ตปุ่มลัด 1 ช่อง: เพิ่มรายจ่าย / เพิ่มรายรับ
+             ต้องรับ ACTION_QUICK_ADD_CLICK ด้วย (กดวิดเจ็ต → บันทึก Prefs → เปิดแอป) -->
         <receiver
             android:name=".QuickAddExpenseWidget"
             android:label="@string/widget_name_expense"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.patipan.finance.ACTION_QUICK_ADD_CLICK" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -38,6 +40,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.patipan.finance.ACTION_QUICK_ADD_CLICK" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

@@ -21,44 +21,54 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             vm.msg.collect { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show() }
         }
-        // เปิดจากวิดเจ็ต (handleQuickAdd จะลบ extra ทิ้งหลังรับแล้ว จึงไม่เปิดซ้ำตอนหมุนจอ)
-        handleQuickAdd(intent)
         setContent { FinanceTheme { FinanceApp(vm) } }
+        // หลัง setContent แล้วค่อยดึงคำขอจากวิดเจ็ต (Prefs เป็นหลัก)
+        consumePendingQuickAdd(intent)
     }
 
-    // แอปเปิดค้างอยู่แล้ว แล้วแตะวิดเจ็ต
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleQuickAdd(intent)
+        consumePendingQuickAdd(intent)
     }
 
-    private fun handleQuickAdd(intent: Intent?) {
-        if (intent == null) return
-        // 1) อ่านจาก extra ก่อน
-        var type = intent.getStringExtra(EXTRA_QUICK_ADD)
-        // 2) ถ้า extra หาย (พบบ่อยกับวิดเจ็ต + singleTop) ลองอ่านจาก action แทน
-        if (type.isNullOrBlank()) {
+    override fun onResume() {
+        super.onResume()
+        // กันกรณี activity อยู่แล้ว แล้ว Prefs ถูกเขียนจาก Broadcast ก่อน onNewIntent
+        consumePendingQuickAdd(intent)
+    }
+
+    /**
+     * อ่านคำขอเปิดฟอร์มจาก:
+     * 1) Prefs (แหล่งหลัก จาก Broadcast ของวิดเจ็ต)
+     * 2) Intent extra / action (สำรอง)
+     */
+    private fun consumePendingQuickAdd(intent: Intent?) {
+        // 1) Prefs
+        var type = vm.peekPendingQuickAdd()
+
+        // 2) Intent extra
+        if (type.isNullOrBlank() && intent != null) {
+            type = intent.getStringExtra(EXTRA_QUICK_ADD)
+        }
+        // 3) action
+        if (type.isNullOrBlank() && intent != null) {
             val action = intent.action.orEmpty()
             type = when {
-                action.endsWith("_EXPENSE") -> EXPENSE
-                action.endsWith("_INCOME") -> INCOME
+                action.endsWith("_EXPENSE") || action.contains("EXPENSE") -> EXPENSE
+                action.endsWith("_INCOME") || action.contains("INCOME") -> INCOME
                 else -> null
             }
         }
-        // 3) ลองจาก data URI
-        if (type.isNullOrBlank()) {
-            val segment = intent.data?.lastPathSegment
-            type = when (segment) {
-                EXPENSE, "EXPENSE" -> EXPENSE
-                INCOME, "INCOME" -> INCOME
-                else -> null
-            }
-        }
+
         if (type.isNullOrBlank()) return
-        intent.removeExtra(EXTRA_QUICK_ADD)
-        if (type == EXPENSE || type == INCOME) vm.requestQuickAdd(type)
+        if (type != EXPENSE && type != INCOME) return
+
+        intent?.removeExtra(EXTRA_QUICK_ADD)
+        vm.requestQuickAdd(type)
     }
 
-    companion object { const val EXTRA_QUICK_ADD = "quick_add_type" }
+    companion object {
+        const val EXTRA_QUICK_ADD = "quick_add_type"
+    }
 }
