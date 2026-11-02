@@ -26,16 +26,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
 @Composable
-private fun SettingRow(emoji: String, title: String, sub: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 12.dp, horizontal = 4.dp),
+private fun SettingRow(glyph: Glyph, title: String, sub: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).pressClickable(onClick).padding(vertical = 8.dp, horizontal = 2.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Text(emoji, fontSize = 26.sp)
+        // ไอคอนเส้นชุดเดียวกันทั้งแอป บนแผ่นสีมิ้นต์ (ไม่ใช้อีโมจิหลายสี)
+        Box(Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(Mint), contentAlignment = Alignment.Center) {
+            LineIcon(glyph, Moss, Modifier.size(24.dp))
+        }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-            Text(sub, fontSize = 13.sp, color = Ink.copy(alpha = 0.6f))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(sub, fontSize = 13.sp, color = InkSoft)
         }
-        Text("›", fontSize = 22.sp)
+        LineIcon(Glyph.ChevronRight, InkSoft, Modifier.size(22.dp))
     }
 }
 
@@ -43,6 +46,7 @@ private fun SettingRow(emoji: String, title: String, sub: String, onClick: () ->
 fun SettingsScreen(vm: FinanceVM, onNav: (String) -> Unit) {
     val warn by vm.warnPercent.collectAsState()
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
+    var confirmLogout by remember { mutableStateOf(false) }
     val stamp = LocalDate.now().toString()
     val csvL = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { u -> if (u != null) vm.exportCsv(u) }
     val jsonL = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { u -> if (u != null) vm.backup(u) }
@@ -50,42 +54,63 @@ fun SettingsScreen(vm: FinanceVM, onNav: (String) -> Unit) {
 
     restoreUri?.let { u ->
         ConfirmDialog("กู้คืนข้อมูลจากไฟล์สำรอง?",
-            "คำเตือน: ข้อมูลทั้งหมดที่มีอยู่ในแอปตอนนี้ (กระเป๋า หมวดหมู่ รายการ งบประมาณ) จะถูกแทนที่ด้วยข้อมูลในไฟล์ " +
+            "คำเตือน: ข้อมูลทั้งหมดของบัญชีนี้ (กระเป๋า หมวดหมู่ รายการ งบประมาณ) จะถูกแทนที่ด้วยข้อมูลในไฟล์ " +
                 "และไม่สามารถย้อนกลับได้ แนะนำให้สำรองข้อมูลปัจจุบันก่อน",
             "กู้คืน", onConfirm = { vm.restore(u); restoreUri = null }, onDismiss = { restoreUri = null })
     }
 
+    if (confirmLogout) ConfirmDialog("ออกจากระบบ?",
+        "ข้อมูลของคุณยังอยู่บนเซิร์ฟเวอร์ครบถ้วน เข้าสู่ระบบใหม่เมื่อไหร่ก็ได้เพื่อดูข้อมูลต่อ", "ออกจากระบบ",
+        onConfirm = { confirmLogout = false; vm.signOut() }, onDismiss = { confirmLogout = false })
+
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { ScreenTitle("ตั้งค่า") }
         item {
             SoftCard {
-                SectionTitle("จัดการข้อมูล")
-                SettingRow("👛", "กระเป๋าเงิน", "เพิ่ม แก้ไข ลบ และดูยอดคงเหลือ") { onNav("wallets") }
-                SettingRow("🏷️", "หมวดหมู่", "จัดการหมวดรายรับ-รายจ่าย") { onNav("categories") }
-                SettingRow("🎯", "งบประมาณรายเดือน", "ตั้งงบแยกตามหมวดหมู่") { onNav("budgets") }
+                SectionTitle("บัญชี")
+                Text(vm.email, fontSize = 15.sp, color = InkSoft, modifier = Modifier.padding(bottom = 4.dp))
+                SettingRow(Glyph.Restore, "โหลดข้อมูลใหม่จากเซิร์ฟเวอร์", "ใช้เมื่อแก้ข้อมูลจากที่อื่น") { vm.refreshNow() }
+                SettingRow(Glyph.Lock, "ออกจากระบบ", "ต้องกรอกรหัสผ่านใหม่เมื่อเข้าใช้งานครั้งต่อไป") { confirmLogout = true }
             }
         }
         item {
             SoftCard {
-                SectionTitle("แจ้งเตือนงบประมาณ")
-                Text("เตือนเมื่อใช้เงินถึง $warn% ของงบ", fontSize = 14.sp, modifier = Modifier.padding(vertical = 6.dp))
+                SectionTitle("จัดการข้อมูล")
+                SettingRow(Glyph.Wallet, "กระเป๋าเงิน", "เพิ่ม แก้ไข ลบ และดูยอดคงเหลือ") { onNav("wallets") }
+                SettingRow(Glyph.Tag, "หมวดหมู่", "จัดการหมวดรายรับ-รายจ่าย") { onNav("categories") }
+                SettingRow(Glyph.Target, "งบประมาณรายเดือน", "ตั้งงบแยกตามหมวดหมู่") { onNav("budgets") }
+            }
+        }
+        item {
+            SoftCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LineIcon(Glyph.Bell, Moss, Modifier.size(22.dp))
+                    Spacer(Modifier.width(8.dp))
+                    SectionTitle("แจ้งเตือนงบประมาณ")
+                }
+                Text("เตือนเมื่อใช้เงินถึง $warn% ของงบ", fontSize = 15.sp, color = InkSoft, modifier = Modifier.padding(vertical = 8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(70, 80, 90).forEach { FilterChip(selected = warn == it, onClick = { vm.setWarn(it) }, label = { Text("$it%") }) }
+                    listOf(70, 80, 90).forEach { Pill("$it%", warn == it) { vm.setWarn(it) } }
                 }
             }
         }
         item {
             SoftCard {
                 SectionTitle("สำรองและส่งออกข้อมูล")
-                SettingRow("📤", "ส่งออกเป็น CSV", "เปิดใน Excel / Google Sheets ได้") { csvL.launch("PersonalFinance_$stamp.csv") }
-                SettingRow("💾", "สำรองข้อมูลเป็น JSON", "รวมรูปใบเสร็จ เลือกตำแหน่งเก็บไฟล์เอง") { jsonL.launch("PersonalFinance_backup_$stamp.json") }
-                SettingRow("📥", "กู้คืนจากไฟล์สำรอง", "แทนที่ข้อมูลทั้งหมดในแอป") { openL.launch(arrayOf("application/json", "text/plain", "*/*")) }
+                SettingRow(Glyph.Export, "ส่งออกเป็น CSV", "เปิดใน Excel / Google Sheets ได้") { csvL.launch("PersonalFinance_$stamp.csv") }
+                SettingRow(Glyph.Save, "สำรองข้อมูลเป็น JSON", "รวมรูปใบเสร็จ เลือกตำแหน่งเก็บไฟล์เอง") { jsonL.launch("PersonalFinance_backup_$stamp.json") }
+                SettingRow(Glyph.Restore, "กู้คืนจากไฟล์สำรอง", "แทนที่ข้อมูลทั้งหมดบนเซิร์ฟเวอร์") { openL.launch(arrayOf("application/json", "text/plain", "*/*")) }
             }
         }
         item {
             SoftCard(tint = Mint.copy(alpha = 0.5f)) {
-                Text("🔒 ความเป็นส่วนตัว", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Text("ข้อมูลทั้งหมดอยู่ในเครื่องของคุณเท่านั้น แอปไม่ใช้อินเทอร์เน็ต ไม่มีโฆษณา ไม่มีการติดตามผู้ใช้ และไม่ต้องล็อกอิน",
-                    fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LineIcon(Glyph.Lock, Moss, Modifier.size(22.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("ความเป็นส่วนตัว", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                }
+                Text("ข้อมูลเก็บในโปรเจกต์ Supabase ส่วนตัวของคุณ เข้าถึงได้เฉพาะบัญชีที่ล็อกอินเท่านั้น (ป้องกันด้วย Row Level Security) ต้องใช้อินเทอร์เน็ตเพื่อดูและบันทึกข้อมูล ไม่มีโฆษณาและไม่มีการติดตามผู้ใช้",
+                    fontSize = 14.sp, color = InkSoft, modifier = Modifier.padding(top = 6.dp))
             }
         }
     }

@@ -44,18 +44,21 @@ fun ReportsScreen(vm: FinanceVM) {
     } else if (ym == YearMonth.from(today)) today.dayOfMonth else ym.lengthOfMonth()
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { ScreenTitle("รายงาน") }
         item {
             SoftCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = !yearMode, onClick = { yearMode = false }, label = { Text("รายเดือน") })
-                    FilterChip(selected = yearMode, onClick = { yearMode = true }, label = { Text("รายปี") })
+                    Pill("รายเดือน", !yearMode) { yearMode = false }
+                    Pill("รายปี", yearMode) { yearMode = true }
                 }
+                Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { if (yearMode) year-- else ym = ym.minusMonths(1) }) { Text("‹", fontSize = 24.sp) }
+                    NavCircle(Glyph.ChevronLeft, if (yearMode) "ปีก่อนหน้า" else "เดือนก่อนหน้า") { if (yearMode) year-- else ym = ym.minusMonths(1) }
                     Text(if (yearMode) "ปี ${year + 543}" else monthLabel(ym), Modifier.weight(1f),
                         textAlign = TextAlign.Center, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = { if (yearMode) year++ else ym = ym.plusMonths(1) }) { Text("›", fontSize = 24.sp) }
+                    NavCircle(Glyph.ChevronRight, if (yearMode) "ปีถัดไป" else "เดือนถัดไป") { if (yearMode) year++ else ym = ym.plusMonths(1) }
                 }
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth()) {
                     Stat("รายรับ", "${money(income)} บาท", IncomeGreen, Modifier.weight(1f))
                     Stat("รายจ่าย", "${money(expense)} บาท", ExpenseRed, Modifier.weight(1f))
@@ -70,16 +73,16 @@ fun ReportsScreen(vm: FinanceVM) {
                 if (yearMode) {
                     val inc = (1..12).map { m -> sumOf(period.filter { it.localDate.monthValue == m }, INCOME) }
                     val exp = (1..12).map { m -> sumOf(period.filter { it.localDate.monthValue == m }, EXPENSE) }
-                    DualBars(inc, exp)
+                    DualBars(inc, exp, introKey = "rep-bars")
                     Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                        thMonthsShort.forEach { Text(it, Modifier.weight(1f), fontSize = 8.sp, textAlign = TextAlign.Center, maxLines = 1) }
+                        thMonthsShort.forEach { Text(it, Modifier.weight(1f), fontSize = 9.sp, textAlign = TextAlign.Center, maxLines = 1, color = InkSoft) }
                     }
                 } else {
                     val n = ym.lengthOfMonth()
                     DualBars((1..n).map { d -> sumOf(period.filter { it.localDate.dayOfMonth == d }, INCOME) },
-                        (1..n).map { d -> sumOf(period.filter { it.localDate.dayOfMonth == d }, EXPENSE) })
+                        (1..n).map { d -> sumOf(period.filter { it.localDate.dayOfMonth == d }, EXPENSE) }, introKey = "rep-bars")
                     Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                        Text("1", fontSize = 11.sp); Spacer(Modifier.weight(1f)); Text("$n", fontSize = 11.sp)
+                        Text("1", fontSize = 12.sp, color = InkSoft); Spacer(Modifier.weight(1f)); Text("$n", fontSize = 12.sp, color = InkSoft)
                     }
                 }
                 ChartLegend()
@@ -90,7 +93,8 @@ fun ReportsScreen(vm: FinanceVM) {
                 SectionTitle("ภาพรวมรายจ่าย")
                 Spacer(Modifier.height(6.dp))
                 val avg = if (daysCount > 0) expense / daysCount else 0L
-                Text("ค่าใช้จ่ายเฉลี่ยต่อวัน: ${money(avg)} บาท", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("ค่าใช้จ่ายเฉลี่ยต่อวัน", fontSize = 13.sp, color = InkSoft)
+                Text("${money(avg)} บาท", style = Num, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
                 val top = byCat.firstOrNull()
                 Text(
                     if (top != null) "ใช้เงินมากที่สุด: ${catName(top.first?.let { catMap[it] })} (${money(top.second)} บาท)"
@@ -111,7 +115,7 @@ fun ReportsScreen(vm: FinanceVM) {
                             diff > 0 -> "เดือนนี้จ่ายมากกว่า ${money(diff)} บาท ($pct)"
                             diff < 0 -> "เดือนนี้จ่ายน้อยกว่า ${money(-diff)} บาท ($pct)"
                             else -> "จ่ายเท่ากับเดือนก่อน"
-                        }, fontWeight = FontWeight.Bold, color = if (diff > 0) ExpenseRed else IncomeGreen
+                        }, fontWeight = FontWeight.Bold, color = if (diff > 0) ExpenseText else IncomeText
                     )
                 }
             }
@@ -120,7 +124,7 @@ fun ReportsScreen(vm: FinanceVM) {
             SoftCard {
                 SectionTitle("สัดส่วนรายจ่ายตามหมวดหมู่")
                 Spacer(Modifier.height(8.dp))
-                CategoryShare(byCat.map { catName(it.first?.let { id -> catMap[id] }) to it.second })
+                CategoryShare(byCat.map { catName(it.first?.let { id -> catMap[id] }) to it.second }, introKey = "rep-donut")
             }
         }
         item { Spacer(Modifier.height(8.dp)) }

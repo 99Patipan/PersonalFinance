@@ -63,6 +63,10 @@ fun parseCents(s: String): Long? = runCatching {
     java.math.BigDecimal(s).setScale(2, java.math.RoundingMode.UNNECESSARY).movePointRight(2).toLong()
 }.getOrNull()
 
+/** ยอดเงินคงเหลือรวม: นับเฉพาะกระเป๋าที่เปิด "นับรวมในยอดรวม" */
+fun totalBalance(wallets: List<Wallet>, all: List<Txn>): Long =
+    wallets.filter { it.includeInTotal }.sumOf { walletBalance(it, all) }
+
 fun walletBalance(w: Wallet, all: List<Txn>): Long {
     var b = w.initialCents
     for (x in all) when (x.type) {
@@ -78,8 +82,11 @@ fun walletBalance(w: Wallet, all: List<Txn>): Long {
 
 fun sumOf(list: List<Txn>, type: String) = list.filter { it.type == type }.sumOf { it.amountCents }
 fun inMonth(all: List<Txn>, ym: YearMonth) = all.filter { YearMonth.from(it.localDate) == ym }
-fun expenseByCat(list: List<Txn>): List<Pair<Long?, Long>> =
+fun expenseByCat(list: List<Txn>): List<Pair<String?, Long>> =
     list.filter { it.type == EXPENSE }.groupBy { it.categoryId }
         .map { it.key to it.value.sumOf { x -> x.amountCents } }.sortedByDescending { it.second }
 
-fun catName(c: Category?) = if (c == null) "ไม่ระบุหมวด" else "${c.emoji} ${c.name}"
+/** ชื่อหมวดพร้อมอีโมจิ (ถ้าใช้ไอคอนรูปภาพจะแสดงเฉพาะชื่อ) */
+fun Category.label() = "${iconText(emoji)} $name".trim()
+
+fun catName(c: Category?) = if (c == null) "ไม่ระบุหมวด" else c.label()
