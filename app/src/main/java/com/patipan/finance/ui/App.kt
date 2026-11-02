@@ -51,6 +51,16 @@ private fun MainContent(vm: FinanceVM) {
     val cats by vm.categories.collectAsState()
     val wallets by vm.wallets.collectAsState()
 
+    // เปิดจากวิดเจ็ต: เปิดฟอร์มเพิ่มรายการตามประเภทที่แตะ
+    val quickAdd by vm.quickAdd.collectAsState()
+    LaunchedEffect(quickAdd) {
+        quickAdd?.let { type ->
+            detail = null; sub = null
+            form = FormTarget(null, type)
+            vm.consumeQuickAdd()
+        }
+    }
+
     BackHandler(enabled = form != null) { form = null }
     BackHandler(enabled = form == null && detail == null && sub != null) { sub = null }
 
