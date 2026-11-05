@@ -47,8 +47,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 
 val palette = listOf(
-    Color(0xFF8DAA93), Color(0xFFF59A62), Color(0xFFB7CBBB), Color(0xFFF9C3A1), Color(0xFF6F9479),
-    Color(0xFFD9C7A3), Color(0xFF9FB8C4), Color(0xFFC9A7B8), Color(0xFFB5B58A), Color(0xFF8C9A8F)
+    Color(0xFF6FBF9A), Color(0xFFF5A06A), Color(0xFFFCCBA9), Color(0xFFB4B1C9), Color(0xFF5AB4F5),
+    Color(0xFFF7BE6B), Color(0xFF9B8CF5), Color(0xFFE79AB8), Color(0xFF7CCFC4), Color(0xFFC9C3F5)
 )
 
 // ---------- ตัวช่วยร่วม: การกดมีแรงตอบสนอง / แอนิเมชันเข้าครั้งแรก ----------
@@ -78,8 +78,8 @@ fun rememberIntro(key: String, durationMs: Int = 650): Float {
 
 @Composable
 fun SoftCard(modifier: Modifier = Modifier, tint: Color = Color.White, content: @Composable ColumnScope.() -> Unit) {
-    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = tint,
-        border = BorderStroke(1.dp, Ink.copy(alpha = 0.07f))) {
+    Surface(modifier = modifier.fillMaxWidth().softShadow(28.dp, 12.dp), shape = RoundedCornerShape(28.dp),
+        color = tint.copy(alpha = 0.95f), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.8f))) {
         Column(Modifier.padding(18.dp), content = content)
     }
 }
@@ -91,9 +91,15 @@ fun ScreenTitle(text: String) {
 }
 
 @Composable
-fun SectionTitle(text: String, trailing: @Composable (() -> Unit)? = null) {
+fun SectionTitle(text: String, glyph: Glyph? = null, trailing: @Composable (() -> Unit)? = null) {
     Row(Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Ink, modifier = Modifier.weight(1f))
+        if (glyph != null) {
+            Box(Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(Mint), contentAlignment = Alignment.Center) {
+                LineIcon(glyph, Moss, Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+        }
+        Text(text, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Ink, modifier = Modifier.weight(1f))
         trailing?.invoke()
     }
 }
@@ -121,7 +127,7 @@ fun Pill(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun Stat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     val textColor = when (color) { ExpenseRed -> ExpenseText; IncomeGreen -> IncomeText; else -> color }
-    Column(modifier.padding(horizontal = 3.dp).clip(RoundedCornerShape(18.dp)).background(color.copy(alpha = 0.10f))
+    Column(modifier.padding(horizontal = 3.dp).clip(RoundedCornerShape(18.dp)).background(color.copy(alpha = 0.13f))
         .padding(vertical = 12.dp, horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, fontSize = 12.sp, color = InkSoft)
         Spacer(Modifier.height(3.dp))
@@ -143,7 +149,7 @@ fun TxnRow(t: Txn, cats: Map<String, Category>, wallets: Map<String, Wallet>, sh
     val sub = if (t.type == TRANSFER) "${wallets[t.walletId]?.name ?: "-"} → ${wallets[t.toWalletId]?.name ?: "-"}"
     else "${cat?.name ?: "ไม่ระบุหมวด"} • ${wallets[t.walletId]?.name ?: "-"}"
     val amountColor = when (t.type) { INCOME -> IncomeText; EXPENSE -> ExpenseText; else -> InkSoft }
-    val circle = when (t.type) { INCOME -> Mint; EXPENSE -> Yellow; else -> Sand }
+    val circle = when (t.type) { INCOME -> MintGreen; EXPENSE -> Yellow; else -> Sand }
     val sign = when (t.type) { INCOME -> "+"; EXPENSE -> "-"; else -> "" }
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).pressClickable(onClick).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {

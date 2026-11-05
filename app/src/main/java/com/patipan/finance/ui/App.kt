@@ -103,20 +103,26 @@ private fun FormHost(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
 
 @Composable
 private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onAdd: () -> Unit) {
-    Surface(color = Color.White, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), shadowElevation = 8.dp) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            NavItem(Glyph.Home, "หน้าหลัก", selected == 0) { onSelect(0) }
-            NavItem(Glyph.List, "รายการ", selected == 1) { onSelect(1) }
-            // ปุ่มหลัก: ช่องสี่เหลี่ยมมนสีส้ม ไอคอนบวกสีขาว เด่นกว่าทุกปุ่มในแถบ
-            Box(Modifier.weight(1f).height(60.dp), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(54.dp).shadow(6.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp))
-                    .background(Action).pressClickable(onAdd).semantics { contentDescription = "เพิ่มรายการ" },
-                    contentAlignment = Alignment.Center) {
-                    LineIcon(Glyph.Plus, Color.White, Modifier.size(28.dp))
+    // แถบเมนูลอย: แคปซูลขาวโปร่ง มีเงาม่วงนุ่ม ๆ ห่างขอบจอ
+    Box(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 10.dp)) {
+        Surface(Modifier.fillMaxWidth().softShadow(34.dp, 14.dp, 0.22f), color = Color.White.copy(alpha = 0.96f),
+            shape = RoundedCornerShape(34.dp), border = BorderStroke(1.dp, Color.White)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                NavItem(Glyph.Home, "หน้าหลัก", selected == 0) { onSelect(0) }
+                NavItem(Glyph.List, "รายการ", selected == 1) { onSelect(1) }
+                // ปุ่มหลัก: สี่เหลี่ยมมนไล่สีม่วง ไอคอนบวกสีขาว เด่นกว่าทุกปุ่มในแถบ
+                Box(Modifier.weight(1f).height(60.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(56.dp).shadow(10.dp, RoundedCornerShape(20.dp), ambientColor = Violet, spotColor = Violet)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Brush.linearGradient(listOf(Violet, VioletLight)))
+                        .pressClickable(onAdd).semantics { contentDescription = "เพิ่มรายการ" },
+                        contentAlignment = Alignment.Center) {
+                        LineIcon(Glyph.Plus, Color.White, Modifier.size(30.dp))
+                    }
                 }
+                NavItem(Glyph.Chart, "รายงาน", selected == 2) { onSelect(2) }
+                NavItem(Glyph.Gear, "ตั้งค่า", selected == 3) { onSelect(3) }
             }
-            NavItem(Glyph.Chart, "รายงาน", selected == 2) { onSelect(2) }
-            NavItem(Glyph.Gear, "ตั้งค่า", selected == 3) { onSelect(3) }
         }
     }
 }
@@ -125,7 +131,7 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit, onAdd: () -> Unit)
 private fun RowScope.NavItem(glyph: Glyph, label: String, selected: Boolean, onClick: () -> Unit) {
     val tint by animateColorAsState(if (selected) Moss else InkSoft, tween(200), label = "navTint")
     val pill by animateColorAsState(if (selected) Mint else Color.Transparent, tween(200), label = "navPill")
-    Column(Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(18.dp)).pressClickable(onClick),
+    Column(Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(20.dp)).pressClickable(onClick),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Box(Modifier.size(width = 56.dp, height = 30.dp).clip(RoundedCornerShape(15.dp)).background(pill),
             contentAlignment = Alignment.Center) {

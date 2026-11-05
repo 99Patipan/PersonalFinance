@@ -227,8 +227,8 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
         }
     }
 
-    Surface(Modifier.fillMaxSize(), color = Cream) {
-      Column(Modifier.fillMaxSize().gridBackground()) {
+    Surface(Modifier.fillMaxSize().gridBackground(), color = Color.Transparent) {
+      Column(Modifier.fillMaxSize()) {
         // แถบด้านบนคงที่: ปิด / ชื่อหน้า / ปุ่มบันทึก (ไม่ต้องเลื่อนลงไปกด)
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {

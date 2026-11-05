@@ -29,8 +29,8 @@ fun LoginScreen(vm: FinanceVM) {
     var show by remember { mutableStateOf(false) }
     val canGo = email.isNotBlank() && pw.isNotEmpty() && !busy
 
-    Surface(Modifier.fillMaxSize(), color = Cream) {
-        Column(Modifier.fillMaxSize().gridBackground().verticalScroll(rememberScrollState()).padding(24.dp),
+    Surface(Modifier.fillMaxSize().gridBackground(), color = Color.Transparent) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Text("สมุดรายรับ-รายจ่าย", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Ink, textAlign = TextAlign.Center)
             Spacer(Modifier.height(6.dp))
@@ -68,7 +68,7 @@ fun LoginScreen(vm: FinanceVM) {
 @Composable
 fun LoadingScreen(vm: FinanceVM) {
     val err by vm.loadError.collectAsState()
-    Surface(Modifier.fillMaxSize(), color = Cream) {
+    Surface(Modifier.fillMaxSize().gridBackground(), color = Color.Transparent) {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally) {
             val e = err

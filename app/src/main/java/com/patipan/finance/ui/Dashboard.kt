@@ -47,12 +47,12 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
         item {
             val intro = rememberIntro("hero", 800)
             val shown = (total * intro.toDouble()).toLong()
-            Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = Forest) {
+            Surface(Modifier.fillMaxWidth().softShadow(28.dp, 16.dp, 0.30f), shape = RoundedCornerShape(28.dp), color = Forest) {
                 Box(Modifier.background(Brush.linearGradient(listOf(Forest, ForestLight))).drawBehind {
-                    drawCircle(Color.White.copy(alpha = 0.07f), radius = size.width * 0.38f,
-                        center = Offset(size.width * 0.96f, size.height * 0.02f))
-                    drawCircle(Color.White.copy(alpha = 0.05f), radius = size.width * 0.20f,
-                        center = Offset(size.width * 0.78f, size.height * 0.98f))
+                    drawCircle(Color.White.copy(alpha = 0.12f), radius = size.width * 0.42f,
+                        center = Offset(size.width * 1.0f, size.height * 0.0f))
+                    drawCircle(Color.White.copy(alpha = 0.06f), radius = size.width * 0.22f,
+                        center = Offset(size.width * 0.80f, size.height * 1.0f))
                 }) {
                     Column(Modifier.padding(22.dp)) {
                         Text("ยอดเงินคงเหลือรวม", fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f))
@@ -67,8 +67,8 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
                         wallets.chunked(2).forEach { row ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { w ->
-                                    Row(Modifier.weight(1f).clip(RoundedCornerShape(18.dp))
-                                        .background(Color.White.copy(alpha = if (w.includeInTotal) 0.16f else 0.07f)).padding(horizontal = 12.dp, vertical = 10.dp),
+                                    Row(Modifier.weight(1f).clip(RoundedCornerShape(20.dp))
+                                        .background(Color.White.copy(alpha = if (w.includeInTotal) 0.20f else 0.08f)).padding(horizontal = 12.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically) {
                                         Box(Modifier.size(10.dp).background(Color(w.color), CircleShape))
                                         Spacer(Modifier.width(8.dp))
@@ -99,7 +99,7 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
                 Row(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                     Stat("รายจ่ายรวม", "${money(expense)} บาท", ExpenseRed, Modifier.weight(1f))
                     Stat("รายรับรวม", "${money(income)} บาท", IncomeGreen, Modifier.weight(1f))
-                    Stat("ยอดสุทธิ", "${money(income - expense)} บาท", if (income - expense < 0) ExpenseRed else Ink, Modifier.weight(1f))
+                    Stat("ยอดสุทธิ", "${money(income - expense)} บาท", if (income - expense < 0) ExpenseRed else Moss, Modifier.weight(1f))
                 }
                 CalendarGrid(ym, monthTx, sel) { d -> vm.selectedDay.value = if (sel == d) null else d }
             }
@@ -109,11 +109,11 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
             val day = sel?.let { s -> txns.filter { it.localDate == s } }
             SoftCard {
                 if (sel == null) {
-                    SectionTitle("ธุรกรรมล่าสุด") { TextButton(onClick = onSeeAll) { Text("ดูทั้งหมด") } }
+                    SectionTitle("ธุรกรรมล่าสุด", Glyph.Wallet) { TextButton(onClick = onSeeAll) { Text("ดูทั้งหมด", fontWeight = FontWeight.SemiBold); LineIcon(Glyph.ChevronRight, Moss, Modifier.size(16.dp)) } }
                     if (txns.isEmpty()) EmptyHint("ยังไม่มีรายการ กดปุ่ม + เพื่อเพิ่มรายการแรก")
                     txns.take(5).forEach { TxnRow(it, catMap, wMap) { onOpen(it) } }
                 } else {
-                    SectionTitle("รายการวันที่ ${dateLabel(sel!!)}") {
+                    SectionTitle("รายการวันที่ ${dateLabel(sel!!)}", Glyph.Calendar) {
                         TextButton(onClick = { vm.selectedDay.value = null }) { Text("ล่าสุด") }
                     }
                     if (day.isNullOrEmpty()) EmptyHint("ไม่มีรายการในวันนี้")
@@ -124,7 +124,7 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
         // 4) กราฟรายวัน
         item {
             SoftCard {
-                SectionTitle("กราฟรายรับ-รายจ่าย ${thMonths[ym.monthValue - 1]}")
+                SectionTitle("กราฟรายรับ-รายจ่าย ${thMonths[ym.monthValue - 1]}", Glyph.Chart)
                 val n = ym.lengthOfMonth()
                 val inc = (1..n).map { d -> sumOf(monthTx.filter { it.localDate.dayOfMonth == d }, INCOME) }
                 val exp = (1..n).map { d -> sumOf(monthTx.filter { it.localDate.dayOfMonth == d }, EXPENSE) }
@@ -140,7 +140,7 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
         // 5) สัดส่วนค่าใช้จ่าย (โดนัท)
         item {
             SoftCard {
-                SectionTitle("ค่าใช้จ่ายตามหมวดหมู่")
+                SectionTitle("ค่าใช้จ่ายตามหมวดหมู่", Glyph.Tag)
                 Spacer(Modifier.height(6.dp))
                 CategoryShare(expenseByCat(monthTx).map { catName(it.first?.let { id -> catMap[id] }) to it.second })
             }
@@ -148,7 +148,7 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
         // 6) เป้าหมายงบประมาณ
         item {
             SoftCard {
-                SectionTitle("เป้าหมายงบประมาณ")
+                SectionTitle("เป้าหมายงบประมาณ", Glyph.Target)
                 if (budgets.isEmpty()) EmptyHint("ยังไม่ได้ตั้งงบประมาณ ไปที่ ตั้งค่า > งบประมาณ")
                 budgets.forEach { b ->
                     val c = catMap[b.categoryId] ?: return@forEach
@@ -161,12 +161,12 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
         item {
             val notes = monthTx.filter { it.note.isNotBlank() }
             SoftCard {
-                SectionTitle("บันทึกของฉัน")
+                SectionTitle("บันทึกของฉัน", Glyph.Pencil)
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.Top) {
                     Box(Modifier.padding(top = 12.dp)) { LineIcon(Glyph.Pencil, Moss, Modifier.size(24.dp)) }
                     Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(Sand.copy(alpha = 0.7f)).padding(14.dp)) {
+                    Column(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(Sand.copy(alpha = 0.8f)).padding(14.dp)) {
                         if (notes.isEmpty()) Text("ยังไม่มีบันทึกในเดือนนี้ (เพิ่มได้ในช่อง หมายเหตุ ของแต่ละรายการ)",
                             fontSize = 14.sp, color = InkSoft)
                         notes.take(10).forEach {
@@ -184,8 +184,8 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
 }
 
 /** สีพื้นช่องปฏิทิน (ครีมอุ่น) – ปรับสีได้ที่นี่ */
-private val CalCell = Color(0xFFFBF1DE)
-private val CalCellBorder = Color(0xFFF1E6CC)
+private val CalCell = Color(0xFFFDEFDC)
+private val CalCellBorder = Color(0xFFF7E1C2)
 
 /** ยอดเงินในช่องปฏิทิน: เต็มจำนวนมีคอมมา (ต่ำกว่า 100 บาทแสดงสตางค์ถ้ามี) */
 private fun dayMoney(c: Long): String =
@@ -224,7 +224,7 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                 if (d < 1 || d > days) {
                     // วันของเดือนก่อน/หลัง แสดงเป็นสีจาง
                     val n = if (d < 1) prevDays + d else d - days
-                    Column(Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(12.dp))
+                    Column(Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(14.dp))
                         .background(CalCell.copy(alpha = 0.45f)).padding(horizontal = 4.dp, vertical = 4.dp),
                         horizontalAlignment = Alignment.End) {
                         Text("$n", fontSize = 11.sp, color = Ink.copy(alpha = 0.25f))
@@ -238,10 +238,10 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                 val isSel = date == selected
                 val isToday = date == today
                 Column(
-                    Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(12.dp))
+                    Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(14.dp))
                         .background(if (isSel) Mint else CalCell)
-                        .border(if (isToday || isSel) 1.5.dp else 1.dp,
-                            if (isToday || isSel) Moss else CalCellBorder, RoundedCornerShape(12.dp))
+                        .border(if (isSel) 2.dp else if (isToday) 1.5.dp else 1.dp,
+                            if (isToday || isSel) Moss else CalCellBorder, RoundedCornerShape(14.dp))
                         .clickable { onSelect(date) }.padding(horizontal = 1.dp, vertical = 3.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {

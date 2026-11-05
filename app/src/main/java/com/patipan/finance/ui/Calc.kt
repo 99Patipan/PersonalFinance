@@ -90,8 +90,8 @@ fun calcKey(e: String, k: String): String {
     }
 }
 
-private val KeyBg = Color(0xFFEEF3EC)
-private val KeyBorder = Color(0xFFDDE6DB)
+private val KeyBg = Color(0xFFF1EFFF)
+private val KeyBorder = Color(0xFFDDD9F8)
 
 @Composable
 private fun PadKey(modifier: Modifier, bg: Color = KeyBg, onClick: () -> Unit, content: @Composable () -> Unit) {

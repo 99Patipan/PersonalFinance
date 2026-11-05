@@ -105,7 +105,7 @@ fun WalletsScreen(vm: FinanceVM, onBack: () -> Unit, onTransfer: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 val total = totalBalance(wallets, txns)
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), color = Forest) {
+                Surface(Modifier.fillMaxWidth().softShadow(28.dp, 16.dp, 0.30f), shape = RoundedCornerShape(28.dp), color = Forest) {
                     Box(Modifier.background(Brush.linearGradient(listOf(Forest, ForestLight))).padding(22.dp)) {
                         Column(Modifier.align(Alignment.CenterStart)) {
                             Text("ยอดรวมทุกกระเป๋า", color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
@@ -228,7 +228,7 @@ fun CategoriesScreen(vm: FinanceVM, onBack: () -> Unit) {
             items(cats.filter { it.type == type }, key = { it.id }) { c ->
                 SoftCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(44.dp).clip(CircleShape).background(if (type == EXPENSE) Pink else Mint), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(44.dp).clip(CircleShape).background(if (type == EXPENSE) Pink else MintGreen), contentAlignment = Alignment.Center) {
                             CategoryIcon(c.emoji, 30.dp, 22.sp)
                         }
                         Spacer(Modifier.width(12.dp))
