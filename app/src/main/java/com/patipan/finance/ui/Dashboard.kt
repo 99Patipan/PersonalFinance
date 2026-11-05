@@ -184,8 +184,12 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
 }
 
 /** สีพื้นช่องปฏิทิน (ครีมอุ่น) – ปรับสีได้ที่นี่ */
-private val CalCell = Color(0xFFFDEFDC)
-private val CalCellBorder = Color(0xFFF7E1C2)
+private val CalEmpty = Color(0xFFF1EEFF)        // วันที่ไม่มีรายการ: ลาเวนเดอร์อ่อน
+private val CalEmptyBorder = Color(0xFFE6E1FB)
+private val CalExpense = Color(0xFFFFEBDA)       // วันที่มีรายจ่าย: พีชอ่อน
+private val CalExpenseBorder = Color(0xFFFAD3B0)
+private val CalIncome = Color(0xFFDFF5EA)        // วันที่มีแต่รายรับ: เขียวอ่อน
+private val CalIncomeBorder = Color(0xFFBFE8D3)
 
 /** ยอดเงินในช่องปฏิทิน: เต็มจำนวนมีคอมมา (ต่ำกว่า 100 บาทแสดงสตางค์ถ้ามี) */
 private fun dayMoney(c: Long): String =
@@ -214,7 +218,7 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
     val rows = (offset + days + 6) / 7
     val today = LocalDate.now()
     Row(Modifier.fillMaxWidth()) {
-        thDays.forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = InkSoft) }
+        thDays.forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = Moss.copy(alpha = 0.75f)) }
     }
     Spacer(Modifier.height(4.dp))
     for (r in 0 until rows) {
@@ -225,9 +229,9 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                     // วันของเดือนก่อน/หลัง แสดงเป็นสีจาง
                     val n = if (d < 1) prevDays + d else d - days
                     Column(Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(14.dp))
-                        .background(CalCell.copy(alpha = 0.45f)).padding(horizontal = 4.dp, vertical = 4.dp),
+                        .background(CalEmpty.copy(alpha = 0.55f)).padding(horizontal = 4.dp, vertical = 4.dp),
                         horizontalAlignment = Alignment.End) {
-                        Text("$n", fontSize = 11.sp, color = Ink.copy(alpha = 0.25f))
+                        Text("$n", fontSize = 11.sp, color = Moss.copy(alpha = 0.30f))
                     }
                     continue
                 }
@@ -239,15 +243,25 @@ fun CalendarGrid(ym: YearMonth, monthTx: List<Txn>, selected: LocalDate?, onSele
                 val isToday = date == today
                 Column(
                     Modifier.weight(1f).height(66.dp).padding(1.5.dp).clip(RoundedCornerShape(14.dp))
-                        .background(if (isSel) Mint else CalCell)
+                        .background(when {
+                            isSel -> Color.White
+                            exp > 0 -> CalExpense
+                            inc > 0 -> CalIncome
+                            else -> CalEmpty
+                        })
                         .border(if (isSel) 2.dp else if (isToday) 1.5.dp else 1.dp,
-                            if (isToday || isSel) Moss else CalCellBorder, RoundedCornerShape(14.dp))
+                            when {
+                                isToday || isSel -> Moss
+                                exp > 0 -> CalExpenseBorder
+                                inc > 0 -> CalIncomeBorder
+                                else -> CalEmptyBorder
+                            }, RoundedCornerShape(14.dp))
                         .clickable { onSelect(date) }.padding(horizontal = 1.dp, vertical = 3.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text("$d", Modifier.fillMaxWidth().padding(end = 3.dp), textAlign = TextAlign.End, fontSize = 11.sp,
-                        color = if (isToday || isSel) Moss else InkSoft,
-                        fontWeight = if (isToday || isSel) FontWeight.Bold else FontWeight.Normal)
+                        color = if (isToday || isSel) Moss else Ink.copy(alpha = 0.8f),
+                        fontWeight = if (isToday || isSel) FontWeight.ExtraBold else FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
                     // วันที่มีรายการ: แสดงทั้งรายจ่าย (ส้ม) และรายรับ (เขียว) ฝั่งที่เป็น 0 จะจางลง
                     if (list.isNotEmpty()) {
