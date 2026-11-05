@@ -18,4 +18,10 @@ class Prefs(private val ctx: Context) {
     /** กระเป๋าที่เลือกล่าสุดในหน้าเพิ่มรายการ (อ่านแบบ sync เพื่อใช้เป็นค่าเริ่มต้นของฟอร์มทันที) */
     fun lastWalletId(): String? = ui.getString("last_wallet_id", null)
     fun setLastWalletId(id: String) { ui.edit().putString("last_wallet_id", id).apply() }
+
+    /** กระเป๋าที่ล็อกไว้ในหน้าเพิ่มรายการ (null = ไม่ได้ล็อก) */
+    fun lockedWalletId(): String? = ui.getString("locked_wallet_id", null)
+    fun setLockedWalletId(id: String?) {
+        ui.edit().apply { if (id == null) remove("locked_wallet_id") else putString("locked_wallet_id", id) }.apply()
+    }
 }
