@@ -227,17 +227,17 @@ fun CategoryShare(items: List<Pair<String, Long>>, introKey: String = "donut") {
 }
 
 @Composable
-fun Picker(label: String, value: String, options: List<String>, modifier: Modifier = Modifier, onSelect: (Int) -> Unit) {
+fun Picker(label: String, value: String, options: List<String>, modifier: Modifier = Modifier, enabled: Boolean = true, onSelect: (Int) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
-        Surface(onClick = { open = true }, shape = RoundedCornerShape(14.dp), color = Cream,
+        Surface(onClick = { open = true }, enabled = enabled, shape = RoundedCornerShape(14.dp), color = if (enabled) Cream else Sand,
             border = BorderStroke(1.dp, Ink.copy(alpha = 0.22f)), modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(label, fontSize = 12.sp, color = InkSoft)
                     Text(value, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
-                LineIcon(Glyph.ChevronDown, InkSoft, Modifier.size(20.dp))
+                if (enabled) LineIcon(Glyph.ChevronDown, InkSoft, Modifier.size(20.dp))
             }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

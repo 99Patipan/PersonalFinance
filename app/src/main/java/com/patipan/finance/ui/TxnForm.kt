@@ -165,9 +165,13 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
     var amount by remember { mutableStateOf(init?.let { plain(it.amountCents) } ?: "") }
     var catId by remember { mutableStateOf(init?.categoryId) }
     var customCat by remember { mutableStateOf("") }
-    // ค่าเริ่มต้น = กระเป๋าที่เลือกไว้ครั้งล่าสุด (ถ้ายังมีอยู่) ไม่งั้นใช้ใบแรก
+    // กระเป๋าที่ล็อกไว้ (ใช้เฉพาะตอนเพิ่มรายการใหม่ ไม่กระทบตอนแก้ไขรายการเดิม)
+    var lockedId by remember {
+        mutableStateOf(if (init == null) vm.lockedWalletId()?.takeIf { id -> wallets.any { it.id == id } } else null)
+    }
+    // ค่าเริ่มต้น = กระเป๋าที่ล็อกไว้ > กระเป๋าที่เลือกล่าสุด (ถ้ายังมีอยู่) > ใบแรก
     var walletId by remember {
-        mutableStateOf(init?.walletId ?: vm.lastWalletId()?.takeIf { id -> wallets.any { it.id == id } } ?: wallets.firstOrNull()?.id)
+        mutableStateOf(init?.walletId ?: lockedId ?: vm.lastWalletId()?.takeIf { id -> wallets.any { it.id == id } } ?: wallets.firstOrNull()?.id)
     }
     var toId by remember { mutableStateOf(init?.toWalletId) }
     var dt by remember { mutableStateOf(init?.ldt ?: LocalDateTime.now().withSecond(0).withNano(0)) }
@@ -274,10 +278,30 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                         modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) showPad = false })
                     Spacer(Modifier.height(10.dp))
                 }
-                Picker(if (type == TRANSFER) "จากกระเป๋า" else "กระเป๋าเงิน",
-                    wallets.firstOrNull { it.id == walletId }?.name ?: "เลือกกระเป๋า", wallets.map { it.name }) {
-                    walletId = wallets[it].id; vm.rememberWallet(wallets[it].id); error = null
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Picker(if (type == TRANSFER) "จากกระเป๋า" else "กระเป๋าเงิน",
+                        wallets.firstOrNull { it.id == walletId }?.name ?: "เลือกกระเป๋า", wallets.map { it.name },
+                        modifier = Modifier.weight(1f), enabled = lockedId == null) {
+                        walletId = wallets[it].id; vm.rememberWallet(wallets[it].id); error = null
+                    }
+                    if (init == null) {
+                        val locked = lockedId != null
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.size(48.dp).clip(CircleShape)
+                            .background(if (locked) Moss else Color.White)
+                            .border(1.dp, if (locked) Moss else Ink.copy(alpha = 0.22f), CircleShape)
+                            .pressClickable {
+                                if (locked) { lockedId = null; vm.setLockedWallet(null) }
+                                else walletId?.let { lockedId = it; vm.setLockedWallet(it); vm.rememberWallet(it) }
+                            }
+                            .semantics { contentDescription = if (locked) "ปลดล็อกกระเป๋า" else "ล็อกกระเป๋า" },
+                            contentAlignment = Alignment.Center) {
+                            LineIcon(Glyph.Lock, if (locked) Color.White else InkSoft, Modifier.size(22.dp))
+                        }
+                    }
                 }
+                if (init == null && lockedId != null) Text("ล็อกกระเป๋าไว้ — แตะแม่กุญแจเพื่อปลดล็อกก่อนเปลี่ยน",
+                    fontSize = 11.5.sp, color = InkSoft, modifier = Modifier.padding(start = 2.dp, top = 4.dp))
                 if (type == TRANSFER) {
                     Spacer(Modifier.height(10.dp))
                     Picker("ไปยังกระเป๋า", wallets.firstOrNull { it.id == toId }?.name ?: "เลือกกระเป๋า", wallets.map { it.name }) {

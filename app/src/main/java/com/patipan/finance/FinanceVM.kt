@@ -143,6 +143,8 @@ class FinanceVM(private val app: Application) : AndroidViewModel(app) {
 
     fun lastWalletId(): String? = prefs.lastWalletId()
     fun rememberWallet(id: String) = prefs.setLastWalletId(id)
+    fun lockedWalletId(): String? = prefs.lockedWalletId()
+    fun setLockedWallet(id: String?) = prefs.setLockedWalletId(id)
     fun setWarn(v: Int) = viewModelScope.launch { prefs.setWarnPercent(v) }
 
     fun exportCsv(uri: Uri) = viewModelScope.launch(Dispatchers.IO) {
