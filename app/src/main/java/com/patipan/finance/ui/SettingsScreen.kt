@@ -63,7 +63,7 @@ fun SettingsScreen(vm: FinanceVM, onNav: (String) -> Unit) {
         "ข้อมูลของคุณยังอยู่บนเซิร์ฟเวอร์ครบถ้วน เข้าสู่ระบบใหม่เมื่อไหร่ก็ได้เพื่อดูข้อมูลต่อ", "ออกจากระบบ",
         onConfirm = { confirmLogout = false; vm.signOut() }, onDismiss = { confirmLogout = false })
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + BottomBarSpace), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { ScreenTitle("ตั้งค่า") }
         item {
             SoftCard {

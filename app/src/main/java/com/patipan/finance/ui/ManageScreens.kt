@@ -101,7 +101,7 @@ fun WalletsScreen(vm: FinanceVM, onBack: () -> Unit, onTransfer: () -> Unit) {
     }
     Column(Modifier.fillMaxSize()) {
         PageHeader("กระเป๋าเงิน", onBack) { AddPill { adding = true } }
-        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp + BottomBarSpace),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 val total = totalBalance(wallets, txns)
@@ -224,7 +224,7 @@ fun CategoriesScreen(vm: FinanceVM, onBack: () -> Unit) {
             Pill("รายจ่าย", type == EXPENSE) { type = EXPENSE }
             Pill("รายรับ", type == INCOME) { type = INCOME }
         }
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + BottomBarSpace), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(cats.filter { it.type == type }, key = { it.id }) { c ->
                 SoftCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -341,7 +341,7 @@ fun BudgetsScreen(vm: FinanceVM, onBack: () -> Unit) {
     }
     Column(Modifier.fillMaxSize()) {
         PageHeader("งบประมาณรายเดือน", onBack)
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + BottomBarSpace), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { Text("แตะที่หมวดหมู่เพื่อตั้งหรือแก้ไขงบ (นับจากรายจ่ายของเดือนปัจจุบัน)", fontSize = 13.sp, color = InkSoft) }
             items(cats.filter { it.type == EXPENSE }, key = { it.id }) { c ->
                 val b = bMap[c.id]

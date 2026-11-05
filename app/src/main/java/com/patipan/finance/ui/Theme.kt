@@ -55,6 +55,9 @@ val Action = Violet                   // ปุ่มหลัก "เพิ่�
 val InkSoft = Ink.copy(alpha = 0.66f) // ข้อความรอง
 val Num = TextStyle(fontFeatureSettings = "tnum") // ตัวเลขกว้างเท่ากัน ยอดเงินเรียงตรงหลัก
 
+/** พื้นที่ว่างท้ายหน้าเลื่อน ให้รายการสุดท้ายพ้นแถบเมนูลอย */
+val BottomBarSpace = 96.dp
+
 /** เงาม่วงนุ่ม ๆ ใช้กับการ์ดและแถบเมนู */
 fun Modifier.softShadow(radius: Dp = 24.dp, elevation: Dp = 10.dp, alpha: Float = 0.16f): Modifier =
     this.shadow(elevation, RoundedCornerShape(radius), ambientColor = Violet.copy(alpha = alpha), spotColor = Violet.copy(alpha = alpha + 0.04f))

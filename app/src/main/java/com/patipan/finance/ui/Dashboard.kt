@@ -42,7 +42,7 @@ fun DashboardScreen(vm: FinanceVM, onOpen: (Txn) -> Unit, onSeeAll: () -> Unit) 
     val expense = sumOf(monthTx, EXPENSE)
     val total = totalBalance(wallets, txns)
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + BottomBarSpace), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         // 1) ยอดรวม + กระเป๋า — ตัวเลขใหญ่คือพระเอกของหน้า ไล่ขึ้นครั้งแรกที่เปิดแอป
         item {
             val intro = rememberIntro("hero", 800)

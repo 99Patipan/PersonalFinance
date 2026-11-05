@@ -65,8 +65,9 @@ private fun MainContent(vm: FinanceVM) {
     BackHandler(enabled = form == null && detail == null && sub != null) { sub = null }
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().gridBackground()) {
-            Box(Modifier.weight(1f)) {
+        // เนื้อหาเลื่อนอยู่ใต้แถบเมนูลอย (ไม่ตัดเป็นเส้นแข็ง) ส่วนท้ายหน้ามี BottomBarSpace กันบัง
+        Box(Modifier.fillMaxSize().gridBackground()) {
+            Box(Modifier.fillMaxSize()) {
                 // เปลี่ยนหน้าด้วยการค่อย ๆ จางสลับ (200ms) ใช้ key เป็นตัวตัดสิน ไม่อ่านค่า tab ตอนกำลังสลับ
                 Crossfade(targetState = sub ?: "tab$tab", animationSpec = tween(200), label = "screen") { key ->
                     when (key) {
@@ -80,7 +81,12 @@ private fun MainContent(vm: FinanceVM) {
                     }
                 }
             }
-            BottomBar(tab, onSelect = { tab = it; sub = null }, onAdd = { form = FormTarget(null, EXPENSE) })
+            // เฟดนุ่ม ๆ ด้านล่าง ให้การ์ดที่เลื่อนผ่านหายไปอย่างนุ่มนวล
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(110.dp)
+                .background(Brush.verticalGradient(listOf(Color.Transparent, BgBottom.copy(alpha = 0.92f)))))
+            Box(Modifier.align(Alignment.BottomCenter)) {
+                BottomBar(tab, onSelect = { tab = it; sub = null }, onAdd = { form = FormTarget(null, EXPENSE) })
+            }
         }
 
         form?.let { FormHost(vm, it) { form = null } }

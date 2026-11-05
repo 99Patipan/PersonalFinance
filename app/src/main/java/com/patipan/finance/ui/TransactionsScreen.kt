@@ -53,7 +53,7 @@ fun TransactionsScreen(vm: FinanceVM, onOpen: (Txn) -> Unit) {
     }
     val grouped = filtered.groupBy { it.localDate }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp + BottomBarSpace), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { ScreenTitle("รายการ") }
         item {
             SoftCard {
