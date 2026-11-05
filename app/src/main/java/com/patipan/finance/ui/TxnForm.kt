@@ -326,7 +326,7 @@ fun TxnForm(vm: FinanceVM, target: FormTarget, onClose: () -> Unit) {
                 Text("รูปใบเสร็จ (ไม่บังคับ)", fontWeight = FontWeight.Bold)
                 if (bmp != null) {
                     Spacer(Modifier.height(8.dp))
-                    Image(bmp, "ใบเสร็จ", Modifier.fillMaxWidth().heightIn(max = 220.dp))
+                    ReceiptThumb(bmp, 320.dp)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { launcher.launch("image/*") }) {

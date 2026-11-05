@@ -28,6 +28,13 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Context
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -315,6 +322,59 @@ fun BudgetBar(name: String, used: Long, limit: Long, warnPercent: Int, emoji: St
     }
 }
 
+
+/** รูปใบเสร็จขนาดย่อ แตะเพื่อเปิดดูเต็มจอ */
+@Composable
+fun ReceiptThumb(bmp: ImageBitmap, maxHeight: Dp) {
+    var open by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth()) {
+        Image(bmp, "ใบเสร็จ", Modifier.fillMaxWidth().heightIn(max = maxHeight)
+            .clip(RoundedCornerShape(12.dp)).clickable { open = true })
+        Text("แตะเพื่อขยาย", fontSize = 11.sp, color = Color.White,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp)
+                .clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = 0.55f))
+                .padding(horizontal = 8.dp, vertical = 3.dp))
+    }
+    if (open) ReceiptViewer(bmp) { open = false }
+}
+
+/** ดูรูปเต็มจอ: บีบนิ้วซูม ลากเพื่อเลื่อน แตะสองครั้งเพื่อซูมเข้า/ออก */
+@Composable
+fun ReceiptViewer(bmp: ImageBitmap, onClose: () -> Unit) {
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        var scale by remember { mutableStateOf(1f) }
+        var offset by remember { mutableStateOf(Offset.Zero) }
+        var box by remember { mutableStateOf(IntSize.Zero) }
+        fun clamp(o: Offset, s: Float): Offset {
+            val mx = box.width * (s - 1f) / 2f
+            val my = box.height * (s - 1f) / 2f
+            return Offset(o.x.coerceIn(-mx, mx), o.y.coerceIn(-my, my))
+        }
+        Box(Modifier.fillMaxSize().background(Color.Black).onSizeChanged { box = it }) {
+            Image(bmp, "ใบเสร็จ", contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(onDoubleTap = {
+                            if (scale > 1f) { scale = 1f; offset = Offset.Zero } else scale = 2.5f
+                        })
+                    }
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            val ns = (scale * zoom).coerceIn(1f, 6f)
+                            scale = ns
+                            offset = clamp(offset + pan, ns)
+                        }
+                    }
+                    .graphicsLayer { scaleX = scale; scaleY = scale; translationX = offset.x; translationY = offset.y })
+            Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(16.dp).size(44.dp).clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.6f)).clickable(onClick = onClose),
+                contentAlignment = Alignment.Center) {
+                LineIcon(Glyph.Close, Color.White, Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
 @Composable
 fun TxnDetailDialog(t: Txn, cats: Map<String, Category>, wallets: Map<String, Wallet>,
                     onEdit: () -> Unit, onDelete: () -> Unit, onDismiss: () -> Unit) {
@@ -342,7 +402,7 @@ fun TxnDetailDialog(t: Txn, cats: Map<String, Category>, wallets: Map<String, Wa
                 line("หมายเหตุ", t.note)
                 if (bmp != null) {
                     Spacer(Modifier.height(8.dp))
-                    Image(bmp, "ใบเสร็จ", Modifier.fillMaxWidth().heightIn(max = 260.dp))
+                    ReceiptThumb(bmp, 360.dp)
                 }
             }
         },
